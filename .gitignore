@@ -1,0 +1,26 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+*.sqlite3
+db.sqlite3
+
+# Django
+media/
+staticfiles/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Node
+node_modules/
+
+# React Native
+.expo/
+dist/
+*.jks
