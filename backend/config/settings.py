@@ -17,6 +17,11 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+if DEBUG:
+    # Для разработки с iPhone по LAN не будет лишним разрешить любые host заголовки.
+    # В проде это следует отключать/заменять на явный список.
+    ALLOWED_HOSTS = ['*']
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
