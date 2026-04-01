@@ -33,11 +33,12 @@ export interface ProductCreatePayload {
   sizes: string[]
   colors: string[]
   gender: 'male' | 'female' | 'unisex'
+  brand: string
   status?: string
 }
 
 export const productsApi = {
-  list: (params?: { category?: number; size?: string; color?: string; min_price?: string; max_price?: string; search?: string }) =>
+  list: (params?: { category?: number; size?: string; color?: string; min_price?: string; max_price?: string; search?: string; brand?: string }) =>
     api.get('/products/', { params }),
   listMine: () => api.get('/products/mine/'),
   detail: (id: number) => api.get(`/products/${id}/`),
@@ -58,6 +59,20 @@ export const cartApi = {
   updateItem: (id: number, quantity: number) =>
     api.put(`/cart/items/${id}/`, { quantity }),
   removeItem: (id: number) => api.delete(`/cart/items/${id}/`),
+}
+
+export interface WishlistItemResponse {
+  id: number
+  product: {
+    id: number
+  }
+  created_at: string
+}
+
+export const wishlistApi = {
+  list: () => api.get('/products/wishlist/'),
+  add: (productId: number) => api.post('/products/wishlist/', { product: productId }),
+  remove: (productId: number) => api.delete(`/products/wishlist/${productId}/`),
 }
 
 export const ordersApi = {

@@ -44,6 +44,16 @@ class Product(models.Model):
         FEMALE = 'female', 'Женский'
         UNISEX = 'unisex', 'Унисекс'
 
+    class Brand(models.TextChoices):
+        ADIDAS = 'adidas', 'Adidas'
+        BURBERRY = 'burberry', 'Burberry'
+        CALVIN_KLEIN = 'calvin-klein', 'Calvin Klein'
+        GUCCI = 'gucci', 'Gucci'
+        LOUIS_VUITTON = 'louis-vuitton', 'Louis Vuitton'
+        NEW_BALANCE = 'new-balance', 'New Balance'
+        VOGUE = 'vogue', 'Vogue'
+        ZARA = 'zara', 'Zara'
+
     name = models.CharField('Название', max_length=200)
     description = models.TextField('Описание', blank=True)
     price = models.DecimalField('Цена', max_digits=10, decimal_places=2)
@@ -75,6 +85,13 @@ class Product(models.Model):
         choices=Gender.choices,
         default=Gender.MALE,
         help_text='Для выдачи в категориях «Мужчинам» / «Женщинам» (slug в GENDER_CATEGORY_SLUGS)',
+    )
+    brand = models.CharField(
+        'Бренд',
+        max_length=32,
+        choices=Brand.choices,
+        blank=True,
+        default='',
     )
     listing_categories = models.ManyToManyField(
         Category,
@@ -139,3 +156,29 @@ class ProductImage(models.Model):
         verbose_name = 'Изображение товара'
         verbose_name_plural = 'Изображения товаров'
         ordering = ['order']
+
+
+class WishlistItem(models.Model):
+    """User wishlist item."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='wishlist_items',
+        verbose_name='Пользователь',
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='wishlist_items',
+        verbose_name='Товар',
+    )
+    created_at = models.DateTimeField('Добавлен', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранное'
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'product'], name='uniq_user_product_wishlist')
+        ]

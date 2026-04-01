@@ -1,9 +1,10 @@
 import { useState, useEffect, FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { authApi, ordersApi, productsApi } from '../api'
+import { authApi, ordersApi, productsApi, wishlistApi } from '../api'
+import { useWishlist } from '../contexts/WishlistContext'
 import { formatPriceRub } from '../utils/price'
-import type { Product } from '../components/ProductCard/ProductCard'
+import { ProductCard, type Product } from '../components/ProductCard/ProductCard'
 import styles from './ProfilePage.module.css'
 
 interface DeliveryAddress {
@@ -41,6 +42,7 @@ interface Order {
 
 export function ProfilePage() {
   const { user, refreshUser, isAuthenticated, isLoading } = useAuth()
+  const { ids: wishlistIds, refresh: refreshWishlist } = useWishlist()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -62,6 +64,8 @@ export function ProfilePage() {
   const [addressDeletingId, setAddressDeletingId] = useState<number | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [ordersLoading, setOrdersLoading] = useState(false)
+  const [wishlistProducts, setWishlistProducts] = useState<Product[]>([])
+  const [wishlistLoading, setWishlistLoading] = useState(false)
 
   const [city, setCity] = useState('')
   const [street, setStreet] = useState('')
@@ -119,11 +123,32 @@ export function ProfilePage() {
     }
   }
 
+  const loadWishlist = async () => {
+    if (!isAuthenticated) return
+    setWishlistLoading(true)
+    try {
+      const { data } = await wishlistApi.list()
+      const list = Array.isArray(data) ? data : []
+      const products = list
+        .map((item) => (item as { product?: Product }).product)
+        .filter((product): product is Product => Boolean(product))
+      setWishlistProducts(products)
+    } finally {
+      setWishlistLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!user) return
     loadAddresses()
     loadOrders()
+    loadWishlist()
   }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    loadWishlist()
+  }, [wishlistIds, user])
 
   const handleDeleteProduct = async (productId: number) => {
     if (!confirm('Удалить это объявление?')) return
@@ -375,6 +400,33 @@ export function ProfilePage() {
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section className={styles.ordersBlock}>
+        <div className={styles.wishlistHead}>
+          <h2 className={styles.sectionTitle}>Избранное</h2>
+          <button
+            type="button"
+            className={styles.sellerBtn}
+            onClick={async () => {
+              await refreshWishlist()
+              await loadWishlist()
+            }}
+          >
+            Обновить
+          </button>
+        </div>
+        {wishlistLoading ? (
+          <p className={styles.sellerHint}>Загрузка...</p>
+        ) : wishlistProducts.length === 0 ? (
+          <p className={styles.sellerHint}>Пока пусто. Добавляй товары в избранное из каталога.</p>
+        ) : (
+          <div className={styles.wishlistGrid}>
+            {wishlistProducts.map((product) => (
+              <ProductCard key={`wishlist-${product.id}`} product={product} />
+            ))}
+          </div>
         )}
       </section>
 

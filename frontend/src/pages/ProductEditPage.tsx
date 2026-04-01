@@ -2,6 +2,7 @@ import { useEffect, useState, FormEvent, ChangeEvent } from 'react'
 import { useNavigate, Link, useParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { categoriesApi, productsApi } from '../api'
+import { BRAND_OPTIONS } from '../constants/brands'
 import styles from './ProductNewPage.module.css'
 
 interface CategoryOption {
@@ -31,6 +32,7 @@ export function ProductEditPage() {
   const [categoryId, setCategoryId] = useState('')
   const [sizes, setSizes] = useState('S, M, L')
   const [gender, setGender] = useState<'male' | 'female' | 'unisex'>('male')
+  const [brand, setBrand] = useState(BRAND_OPTIONS[0]?.slug ?? '')
   const [status, setStatus] = useState<'active' | 'moderation' | 'inactive'>('active')
   const [images, setImages] = useState<File[]>([])
 
@@ -109,6 +111,7 @@ export function ProductEditPage() {
           category: number
           sizes: string[]
           gender: string
+          brand?: string
           status: string
           seller: number
         }
@@ -119,6 +122,7 @@ export function ProductEditPage() {
         setCategoryId(String(p.category))
         setSizes((p.sizes ?? []).join(', '))
         setGender(p.gender === 'female' ? 'female' : p.gender === 'unisex' ? 'unisex' : 'male')
+        setBrand(p.brand || (BRAND_OPTIONS[0]?.slug ?? ''))
         setStatus(
           p.status === 'moderation' || p.status === 'inactive' ? p.status : 'active'
         )
@@ -164,6 +168,7 @@ export function ProductEditPage() {
         sizes: parseList(sizes),
         colors: [],
         gender,
+        brand,
         status,
       })
       for (const file of images) {
@@ -317,6 +322,25 @@ export function ProductEditPage() {
                 <span>Унисекс</span>
               </label>
             </div>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="p-brand">
+              Бренд
+            </label>
+            <select
+              id="p-brand"
+              className={styles.select}
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              required
+            >
+              {BRAND_OPTIONS.map((item) => (
+                <option key={item.slug} value={item.slug}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className={styles.field}>

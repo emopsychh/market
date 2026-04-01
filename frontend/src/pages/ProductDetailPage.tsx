@@ -3,8 +3,10 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { productsApi, cartApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
+import { useWishlist } from '../contexts/WishlistContext'
 import { formatPriceRub } from '../utils/price'
 import { resolveMediaUrl } from '../utils/mediaUrl'
+import { pushProductId } from '../utils/recentlyViewed'
 import styles from './ProductDetailPage.module.css'
 
 interface ProductImage {
@@ -49,6 +51,7 @@ export function ProductDetailPage() {
   const navigate = useNavigate()
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const { refreshCartCount } = useCart()
+  const { isInWishlist, toggle } = useWishlist()
 
   const [product, setProduct] = useState<ProductDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -77,6 +80,7 @@ export function ProductDetailPage() {
       .then(({ data }) => {
         if (cancelled) return
         setProduct(data as ProductDetail)
+        pushProductId(num)
         const d = data as ProductDetail
         const sizes = d.sizes ?? []
         const colors = d.colors ?? []
@@ -296,6 +300,23 @@ export function ProductDetailPage() {
             <div className={styles.actions}>
               <button type="submit" className={styles.addBtn} disabled={cartSubmitting}>
                 {cartSubmitting ? '…' : isAuthenticated ? 'В корзину' : 'Войти и добавить'}
+              </button>
+              <button
+                type="button"
+                className={styles.wishBtn}
+                onClick={async () => {
+                  if (!isAuthenticated) {
+                    navigate('/login', { state: { from: `/products/${product.id}` } })
+                    return
+                  }
+                  try {
+                    await toggle(product.id)
+                  } catch {
+                    // keep page stable on request failures
+                  }
+                }}
+              >
+                {isInWishlist(product.id) ? 'Убрать из избранного' : 'В избранное'}
               </button>
               <Link to="/cart" className={styles.cartLink}>
                 Перейти в корзину

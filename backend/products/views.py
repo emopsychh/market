@@ -8,8 +8,14 @@ from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 
-from .models import Category, Product, ProductImage
-from .serializers import CategorySerializer, ProductListSerializer, ProductDetailSerializer, ProductCreateUpdateSerializer
+from .models import Category, Product, ProductImage, WishlistItem
+from .serializers import (
+    CategorySerializer,
+    ProductListSerializer,
+    ProductDetailSerializer,
+    ProductCreateUpdateSerializer,
+    WishlistItemSerializer,
+)
 from .permissions import IsSellerOrAdmin
 
 
@@ -85,6 +91,10 @@ class ProductListView(generics.ListAPIView):
         search = self.request.query_params.get('search')
         if search:
             qs = qs.filter(Q(name__icontains=search) | Q(description__icontains=search))
+        # Фильтр по бренду
+        brand = self.request.query_params.get('brand')
+        if brand:
+            qs = qs.filter(brand=brand)
         return qs
 
 
@@ -134,6 +144,51 @@ class ProductUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 class ProductImageUploadSerializer(serializers.Serializer):
     image = serializers.ImageField()
+
+
+@extend_schema(
+    methods=['GET'],
+    responses={200: WishlistItemSerializer(many=True)},
+)
+@extend_schema(
+    methods=['POST'],
+    request=WishlistItemSerializer,
+    responses={201: WishlistItemSerializer},
+)
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def wishlist_items(request):
+    if request.method == 'GET':
+        items = (
+            WishlistItem.objects.filter(user=request.user)
+            .select_related('product', 'product__category')
+            .prefetch_related('product__images', 'product__listing_categories')
+        )
+        serializer = WishlistItemSerializer(items, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    product_id = request.data.get('product') or request.data.get('product_id')
+    if not product_id:
+        return Response({'detail': 'Поле product обязательно'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        product = Product.objects.get(pk=product_id, status='active')
+    except Product.DoesNotExist:
+        return Response({'detail': 'Товар не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+    item, created = WishlistItem.objects.get_or_create(user=request.user, product=product)
+    serializer = WishlistItemSerializer(item, context={'request': request})
+    code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+    return Response(serializer.data, status=code)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def wishlist_item_delete(request, product_id):
+    deleted, _ = WishlistItem.objects.filter(user=request.user, product_id=product_id).delete()
+    if not deleted:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema(request=ProductImageUploadSerializer, responses={201: None}, operation_id='product_images_create')

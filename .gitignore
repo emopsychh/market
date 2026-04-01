@@ -19,8 +19,4 @@ staticfiles/
 
 # Node
 node_modules/
-
-# React Native
-.expo/
 dist/
-*.jks

@@ -1,6 +1,6 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-from .models import Category, Product, ProductImage
+from .models import Category, Product, ProductImage, WishlistItem
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -26,7 +26,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'name', 'price', 'category', 'category_name',
-            'sizes', 'colors', 'gender', 'first_image', 'preview_images', 'images_count',
+            'sizes', 'colors', 'gender', 'brand', 'first_image', 'preview_images', 'images_count',
             'status',
         ]
 
@@ -69,7 +69,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'name', 'description', 'price', 'category', 'category_name',
-            'seller', 'seller_name', 'sizes', 'colors', 'gender', 'listing_category_ids',
+            'seller', 'seller_name', 'sizes', 'colors', 'gender', 'brand', 'listing_category_ids',
             'images', 'status',
             'created_at', 'updated_at'
         ]
@@ -87,7 +87,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'name', 'description', 'price', 'category', 'sizes', 'colors',
-            'gender', 'status',
+            'gender', 'brand', 'status',
         ]
 
     def create(self, validated_data):
@@ -95,3 +95,13 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         if validated_data.get('colors') is None:
             validated_data['colors'] = []
         return Product.objects.create(**validated_data)
+
+
+class WishlistItemSerializer(serializers.ModelSerializer):
+    product = ProductListSerializer(read_only=True)
+    product_id = serializers.IntegerField(write_only=True, required=False)
+
+    class Meta:
+        model = WishlistItem
+        fields = ['id', 'product', 'product_id', 'created_at']
+        read_only_fields = ['id', 'product', 'created_at']
