@@ -2,6 +2,8 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from .models import Category, Product, ProductImage, WishlistItem
 
+PREVIEW_IMAGES_LIMIT = 4
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,9 +47,9 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.ListField(child=serializers.URLField()))
     def get_preview_images(self, obj):
-        """До 4 URL для сетки на карточке в списке."""
+        """До PREVIEW_IMAGES_LIMIT URL для сетки на карточке в списке."""
         urls = []
-        for img in obj.images.all()[:4]:
+        for img in obj.images.all()[:PREVIEW_IMAGES_LIMIT]:
             u = self._image_url(img)
             if u:
                 urls.append(u)

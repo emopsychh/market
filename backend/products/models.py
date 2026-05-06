@@ -136,6 +136,8 @@ class Product(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
+        # Важно: синхронизация M2M после save() обязательна для актуальной выдачи в каталоге.
+        # Любые изменения порядка/условий вызова могут менять видимость товара по разделам.
         self.sync_listing_categories()
 
 

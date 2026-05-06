@@ -4,6 +4,8 @@ from products.models import Product
 from products.serializers import ProductListSerializer
 from .models import Cart, CartItem, Order, OrderItem
 
+SINGLE_ITEM_QUANTITY = 1
+
 
 class CartItemSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)
@@ -15,7 +17,7 @@ class CartItemSerializer(serializers.ModelSerializer):
 
 
 class CartItemAddSerializer(serializers.ModelSerializer):
-    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.filter(status='active'))
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.filter(status=Product.Status.ACTIVE))
 
     class Meta:
         model = CartItem
@@ -28,7 +30,7 @@ class CartItemAddSerializer(serializers.ModelSerializer):
 
     def validate_quantity(self, value):
         # Маркетплейс: один лот = одна единица в корзине.
-        return 1
+        return SINGLE_ITEM_QUANTITY
 
     def validate(self, attrs):
         product = attrs['product']
@@ -53,7 +55,7 @@ class CartItemAddSerializer(serializers.ModelSerializer):
 
         attrs['size'] = size
         attrs['color'] = color
-        attrs['quantity'] = 1
+        attrs['quantity'] = SINGLE_ITEM_QUANTITY
         return attrs
 
 

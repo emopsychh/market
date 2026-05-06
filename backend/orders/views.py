@@ -5,20 +5,22 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Cart, CartItem, Order, OrderItem
+from .models import CartItem, Order
 from .serializers import (
     CartSerializer,
     CartItemAddSerializer,
     OrderSerializer,
     OrderCreateSerializer,
 )
-from users.models import DeliveryAddress
-from products.models import Product
-
-
-def get_or_create_cart(user):
-    cart, _ = Cart.objects.get_or_create(user=user)
-    return cart
+from .services import (
+    add_item_to_cart,
+    create_order_from_cart,
+    get_cart_item_for_user,
+    get_or_create_cart,
+    resolve_delivery_payload,
+    update_or_delete_cart_item_quantity,
+    user_can_update_order_status,
+)
 
 
 @extend_schema(responses={200: CartSerializer}, operation_id='cart_retrieve')
@@ -40,22 +42,12 @@ def cart_add_item(request):
     serializer = CartItemAddSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    product = serializer.validated_data['product']
-    size = serializer.validated_data['size']
-    color = serializer.validated_data['color']
-    quantity = 1
-
-    cart_item, created = CartItem.objects.get_or_create(
-        cart=cart,
-        product=product,
-        size=size,
-        color=color,
-        defaults={'quantity': quantity}
+    add_item_to_cart(
+        cart,
+        product=serializer.validated_data['product'],
+        size=serializer.validated_data['size'],
+        color=serializer.validated_data['color'],
     )
-    if not created:
-        if cart_item.quantity != 1:
-            cart_item.quantity = 1
-            cart_item.save()
 
     return Response(CartSerializer(cart).data, status=status.HTTP_201_CREATED)
 
@@ -68,8 +60,7 @@ class CartItemDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get_cart_item(self, request, pk):
-        cart = get_or_create_cart(request.user)
-        return CartItem.objects.get(pk=pk, cart=cart)
+        return get_cart_item_for_user(request.user, pk)
 
     @extend_schema(
         request=CartItemQuantitySerializer,
@@ -85,11 +76,7 @@ class CartItemDetailView(APIView):
         serializer.is_valid(raise_exception=True)
         quantity = serializer.validated_data.get('quantity')
         if quantity is not None:
-            if quantity > 0:
-                item.quantity = 1
-                item.save(update_fields=['quantity'])
-            else:
-                item.delete()
+            update_or_delete_cart_item_quantity(item, quantity)
         return Response(CartSerializer(get_or_create_cart(request.user)).data)
 
     @extend_schema(responses={204: None}, operation_id='cart_item_delete')
@@ -140,51 +127,14 @@ def order_create(request):
     serializer = OrderCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    # Get delivery address
-    if address_id := serializer.validated_data.get('address_id'):
-        try:
-            addr = DeliveryAddress.objects.get(pk=address_id, user=request.user)
-        except DeliveryAddress.DoesNotExist:
-            return Response(
-                {'detail': 'Адрес не найден'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        delivery_city = addr.city
-        delivery_street = addr.street
-        delivery_building = addr.building
-        delivery_apartment = addr.apartment
-        delivery_postal_code = addr.postal_code
-    else:
-        delivery_city = serializer.validated_data['delivery_city']
-        delivery_street = serializer.validated_data['delivery_street']
-        delivery_building = serializer.validated_data['delivery_building']
-        delivery_apartment = serializer.validated_data.get('delivery_apartment', '')
-        delivery_postal_code = serializer.validated_data.get('delivery_postal_code', '')
-
-    # Group cart items by seller (for simplicity we create one order per seller)
-    # Or one order with all items - let's do one order with all items
-    order = Order.objects.create(
-        buyer=request.user,
-        delivery_city=delivery_city,
-        delivery_street=delivery_street,
-        delivery_building=delivery_building,
-        delivery_apartment=delivery_apartment,
-        delivery_postal_code=delivery_postal_code,
-    )
-
-    for cart_item in cart.items.select_related('product', 'product__seller').all():
-        OrderItem.objects.create(
-            order=order,
-            product=cart_item.product,
-            product_name=cart_item.product.name,
-            product_price=cart_item.product.price,
-            size=cart_item.size,
-            color=cart_item.color,
-            quantity=cart_item.quantity,
-            seller=cart_item.product.seller,
+    delivery_payload = resolve_delivery_payload(serializer.validated_data, request.user)
+    if not delivery_payload:
+        return Response(
+            {'detail': 'Адрес не найден'},
+            status=status.HTTP_400_BAD_REQUEST
         )
 
-    cart.items.all().delete()
+    order = create_order_from_cart(request.user, cart, delivery_payload)
     return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
 
@@ -206,11 +156,7 @@ def order_status_update(request, pk):
     except Order.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    user = request.user
-    is_seller = user.role in ('seller', 'admin') or user.is_staff
-    is_order_seller = order.items.filter(seller=user).exists()
-
-    if not (is_seller and (user.is_admin or is_order_seller)):
+    if not user_can_update_order_status(request.user, order):
         return Response({'detail': 'Нет доступа'}, status=status.HTTP_403_FORBIDDEN)
 
     new_status = request.data.get('status')
