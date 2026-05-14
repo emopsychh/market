@@ -3,6 +3,7 @@ Django settings for Clothing Marketplace project.
 """
 
 import os
+import importlib.util
 from pathlib import Path
 from datetime import timedelta
 from django.core.exceptions import ImproperlyConfigured
@@ -23,20 +24,24 @@ if DEBUG:
     # В проде это следует отключать/заменять на явный список.
     ALLOWED_HOSTS = ['*']
 
-INSTALLED_APPS = [
+THIRD_PARTY_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Third party
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
     'drf_spectacular',
-    # Local
+]
+
+if importlib.util.find_spec('unfold'):
+    THIRD_PARTY_APPS.insert(0, 'unfold')
+
+INSTALLED_APPS = THIRD_PARTY_APPS + [
     'users',
     'products',
     'orders',
@@ -169,4 +174,16 @@ CORS_ALLOW_CREDENTIALS = True
 GENDER_CATEGORY_SLUGS = {
     'male': os.getenv('CATEGORY_SLUG_MEN', 'muzhchinam'),
     'female': os.getenv('CATEGORY_SLUG_WOMEN', 'zhenshchinam'),
+}
+
+UNFOLD = {
+    'SITE_TITLE': 'Админ-панель маркетплейса',
+    'SITE_HEADER': 'Управление маркетплейсом',
+    'SITE_SUBHEADER': 'Модерация продавцов и объявлений',
+    'SITE_SYMBOL': 'shopping_bag',
+    'SHOW_HISTORY': True,
+    'SHOW_VIEW_ON_SITE': True,
+    'SIDEBAR': {
+        'show_search': False,
+    },
 }

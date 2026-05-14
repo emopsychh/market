@@ -11,12 +11,13 @@ from django.db.models import Q
 from .models import Category, Product, ProductImage, WishlistItem
 from .serializers import (
     CategorySerializer,
+    ProductModerationSerializer,
     ProductListSerializer,
     ProductDetailSerializer,
     ProductCreateUpdateSerializer,
     WishlistItemSerializer,
 )
-from .permissions import IsSellerOrAdmin
+from .permissions import IsAdminRole, IsSellerOrAdmin
 from .services import apply_category_filter, get_active_product
 
 
@@ -60,7 +61,10 @@ class ProductListView(generics.ListAPIView):
 
     def get_queryset(self):
         qs = (
-            Product.objects.filter(status=Product.Status.ACTIVE)
+            Product.objects.filter(
+                status=Product.Status.ACTIVE,
+                publication_status=Product.PublicationStatus.PUBLISHED,
+            )
             .select_related('category')
             .prefetch_related('images', 'listing_categories')
         )
@@ -133,6 +137,13 @@ class ProductUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         if user.is_admin:
             return Product.objects.all()
         return Product.objects.filter(seller=user)
+
+
+class ProductModerationView(generics.UpdateAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductModerationSerializer
+    permission_classes = [IsAuthenticated, IsAdminRole]
+    lookup_url_kwarg = 'pk'
 
 
 class ProductImageUploadSerializer(serializers.Serializer):

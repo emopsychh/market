@@ -10,6 +10,12 @@ class User(AbstractUser):
         SELLER = 'seller', 'Продавец'
         ADMIN = 'admin', 'Администратор'
 
+    class SellerStatus(models.TextChoices):
+        NOT_REQUESTED = 'not_requested', 'Не запрошено'
+        PENDING = 'pending', 'На рассмотрении'
+        APPROVED = 'approved', 'Подтвержден'
+        REJECTED = 'rejected', 'Отклонен'
+
     email = models.EmailField('Email', unique=True)
     role = models.CharField(
         'Роль',
@@ -18,6 +24,13 @@ class User(AbstractUser):
         default=Role.BUYER
     )
     phone = models.CharField('Телефон', max_length=20, blank=True)
+    seller_status = models.CharField(
+        'Статус продавца',
+        max_length=20,
+        choices=SellerStatus.choices,
+        default=SellerStatus.NOT_REQUESTED,
+    )
+    seller_rejection_reason = models.CharField('Причина отклонения продавца', max_length=255, blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -31,7 +44,9 @@ class User(AbstractUser):
 
     @property
     def is_seller(self):
-        return self.role in (self.Role.SELLER, self.Role.ADMIN)
+        return self.is_admin or (
+            self.role == self.Role.SELLER and self.seller_status == self.SellerStatus.APPROVED
+        )
 
     @property
     def is_admin(self):

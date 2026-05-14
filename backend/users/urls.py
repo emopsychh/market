@@ -7,6 +7,7 @@ from .views import (
     UserProfileView,
     addresses,
     address_detail,
+    seller_application,
 )
 
 urlpatterns = [
@@ -14,6 +15,7 @@ urlpatterns = [
     path('login/', CustomTokenObtainPairView.as_view()),
     path('refresh/', TokenRefreshView.as_view()),
     path('me/', UserProfileView.as_view()),
+    path('seller-application/', seller_application),
     path('addresses/', addresses),
     path('addresses/<int:pk>/', address_detail),
 ]

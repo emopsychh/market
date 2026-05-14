@@ -39,6 +39,12 @@ class Product(models.Model):
         MODERATION = 'moderation', 'На модерации'
         INACTIVE = 'inactive', 'Неактивен'
 
+    class PublicationStatus(models.TextChoices):
+        DRAFT = 'draft', 'Черновик'
+        PENDING_REVIEW = 'pending_review', 'На модерации'
+        PUBLISHED = 'published', 'Опубликован'
+        REJECTED = 'rejected', 'Отклонен'
+
     class Gender(models.TextChoices):
         MALE = 'male', 'Мужской'
         FEMALE = 'female', 'Женский'
@@ -106,6 +112,13 @@ class Product(models.Model):
         choices=Status.choices,
         default=Status.ACTIVE
     )
+    publication_status = models.CharField(
+        'Статус публикации',
+        max_length=20,
+        choices=PublicationStatus.choices,
+        default=PublicationStatus.DRAFT,
+    )
+    moderation_note = models.CharField('Комментарий модерации', max_length=255, blank=True)
     created_at = models.DateTimeField('Создан', auto_now_add=True)
     updated_at = models.DateTimeField('Обновлён', auto_now=True)
 

@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
+import { authApi } from '../../api'
 import { SearchBar } from '../SearchBar/SearchBar'
 import { CategoryNav } from '../CategoryNav/CategoryNav'
 import { useAuth } from '../../contexts/AuthContext'
@@ -7,11 +8,12 @@ import { useCart } from '../../contexts/CartContext'
 import styles from './Header.module.css'
 
 export function Header() {
-  const { user, isAuthenticated, isLoading, logout } = useAuth()
+  const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth()
   const { itemCount } = useCart()
   const navigate = useNavigate()
   const cartRef = useRef<HTMLAnchorElement | null>(null)
   const [isCartPulse, setIsCartPulse] = useState(false)
+  const [isApplyingSeller, setIsApplyingSeller] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -19,6 +21,23 @@ export function Header() {
   }
 
   const avatarLetter = user?.first_name?.[0] || user?.username?.[0] || user?.email?.[0] || '?'
+  const canCreateProducts = user?.role === 'admin' || (user?.role === 'seller' && user?.seller_status === 'approved')
+  const canShowBecomeSeller =
+    isAuthenticated &&
+    user?.role !== 'admin' &&
+    (user?.role === 'buyer' || user?.seller_status === 'rejected' || user?.seller_status === 'not_requested')
+  const sellerPending = user?.role === 'seller' && user?.seller_status === 'pending'
+
+  const handleBecomeSeller = async () => {
+    if (isApplyingSeller) return
+    setIsApplyingSeller(true)
+    try {
+      await authApi.sellerApplication()
+      await refreshUser()
+    } finally {
+      setIsApplyingSeller(false)
+    }
+  }
 
   useEffect(() => {
     const onCartAdded = (event: Event) => {
@@ -84,11 +103,17 @@ export function Header() {
         <SearchBar />
         <nav className={styles.nav}>
           <Link to="/products" className={styles.link}>PRODUCTS</Link>
-          {(user?.role === 'seller' || user?.role === 'admin') && (
+          {canCreateProducts && (
             <Link to="/products/new" className={styles.linkNew}>
               NEW
             </Link>
           )}
+          {canShowBecomeSeller && (
+            <button type="button" className={styles.linkNew} onClick={handleBecomeSeller} disabled={isApplyingSeller}>
+              {isApplyingSeller ? 'ОТПРАВКА...' : 'СТАТЬ ПРОДАВЦОМ'}
+            </button>
+          )}
+          {sellerPending && <span className={styles.sellerPending}>ЗАЯВКА НА МОДЕРАЦИИ</span>}
           <Link
             ref={cartRef}
             to="/cart"

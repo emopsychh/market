@@ -135,6 +135,8 @@ python manage.py runserver
 
 API: `http://127.0.0.1:8000/api/`. Админка: `http://127.0.0.1:8000/admin/`.
 
+Админка использует тему Django Unfold (устанавливается из `requirements.txt`).
+
 Опционально для единого стиля backend-кода:
 
 ```bash

@@ -51,7 +51,7 @@ export function ProfilePage() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
-  const [role, setRole] = useState<string>('buyer')
+  const [isApplyingSeller, setIsApplyingSeller] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -74,7 +74,7 @@ export function ProfilePage() {
   const [postalCode, setPostalCode] = useState('')
   const [isDefaultAddress, setIsDefaultAddress] = useState(false)
 
-  const isSeller = user?.role === 'seller' || user?.role === 'admin'
+  const isApprovedSeller = user?.role === 'admin' || (user?.role === 'seller' && user?.seller_status === 'approved')
   const statusLabel: Record<Order['status'], string> = {
     pending: 'Ожидает обработки',
     confirmed: 'Подтвержден',
@@ -84,7 +84,7 @@ export function ProfilePage() {
   }
 
   useEffect(() => {
-    if (!isSeller || !user) return
+    if (!isApprovedSeller || !user) return
     let cancelled = false
     setLoadingMine(true)
     productsApi
@@ -101,7 +101,7 @@ export function ProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [isSeller, user])
+  }, [isApprovedSeller, user])
 
   const loadAddresses = async () => {
     setAddressesLoading(true)
@@ -166,7 +166,6 @@ export function ProfilePage() {
       setFirstName(user.first_name ?? '')
       setLastName(user.last_name ?? '')
       setPhone(user.phone ?? '')
-      setRole(user.role ?? 'buyer')
     }
   }, [user])
 
@@ -180,7 +179,6 @@ export function ProfilePage() {
         first_name: firstName,
         last_name: lastName,
         phone,
-        ...(user.role !== 'admin' && { role }),
       })
       await refreshUser()
       setSaved(true)
@@ -188,6 +186,27 @@ export function ProfilePage() {
       setSaving(false)
     }
   }
+
+  const handleSellerApplication = async () => {
+    if (!user) return
+    setIsApplyingSeller(true)
+    try {
+      await authApi.sellerApplication()
+      await refreshUser()
+    } finally {
+      setIsApplyingSeller(false)
+    }
+  }
+
+  const sellerStatusLabel = !user
+    ? ''
+    : (() => {
+    if (user.role === 'admin') return 'Администратор'
+    if (user.role === 'seller' && user.seller_status === 'approved') return 'Продавец (подтвержден)'
+    if (user.role === 'seller' && user.seller_status === 'pending') return 'Заявка продавца на модерации'
+    if (user.role === 'seller' && user.seller_status === 'rejected') return 'Заявка продавца отклонена'
+    return 'Покупатель'
+    })()
 
   const handleAddAddress = async (e: FormEvent) => {
     e.preventDefault()
@@ -245,30 +264,24 @@ export function ProfilePage() {
           </div>
           <div className={styles.field}>
             <label className={styles.label}>Роль</label>
-            {user.role === 'admin' ? (
-              <span className={styles.value}>Администратор</span>
-            ) : (
+            <span className={styles.value}>{sellerStatusLabel}</span>
+            {user.role !== 'admin' && !isApprovedSeller && (
               <div className={styles.roleOptions}>
-                <label className={styles.roleOption}>
-                  <input
-                    type="radio"
-                    name="role"
-                    value="buyer"
-                    checked={role === 'buyer'}
-                    onChange={(e) => setRole(e.target.value)}
-                  />
-                  <span>Покупатель</span>
-                </label>
-                <label className={styles.roleOption}>
-                  <input
-                    type="radio"
-                    name="role"
-                    value="seller"
-                    checked={role === 'seller'}
-                    onChange={(e) => setRole(e.target.value)}
-                  />
-                  <span>Продавец</span>
-                </label>
+                <button
+                  type="button"
+                  className={styles.sellerBtn}
+                  onClick={handleSellerApplication}
+                  disabled={isApplyingSeller || user.seller_status === 'pending'}
+                >
+                  {user.seller_status === 'pending'
+                    ? 'Заявка отправлена'
+                    : isApplyingSeller
+                      ? 'Отправка...'
+                      : 'Стать продавцом'}
+                </button>
+                {user.seller_status === 'rejected' && user.seller_rejection_reason && (
+                  <p className={styles.sellerHint}>Причина: {user.seller_rejection_reason}</p>
+                )}
               </div>
             )}
           </div>
@@ -430,7 +443,7 @@ export function ProfilePage() {
         )}
       </section>
 
-      {isSeller && (
+      {isApprovedSeller && (
         <div className={styles.sellerBlock}>
           <h2 className={styles.sellerTitle}>Мои объявления</h2>
           {loadingMine && <p className={styles.sellerHint}>Загрузка...</p>}

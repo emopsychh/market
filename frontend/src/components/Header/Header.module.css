@@ -101,6 +101,14 @@
   color: var(--color-text);
 }
 
+.sellerPending {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
 .authLinks {
   display: flex;
   align-items: center;

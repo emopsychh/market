@@ -8,4 +8,16 @@ class IsSellerOrAdmin(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        return request.user.role in (User.Role.SELLER, User.Role.ADMIN) or request.user.is_staff
+        if request.user.role == User.Role.ADMIN or request.user.is_staff:
+            return True
+        return (
+            request.user.role == User.Role.SELLER
+            and request.user.seller_status == User.SellerStatus.APPROVED
+        )
+
+
+class IsAdminRole(BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return request.user.role == User.Role.ADMIN or request.user.is_staff

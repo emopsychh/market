@@ -24,6 +24,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password')
+        if validated_data.get('role') == User.Role.SELLER:
+            validated_data['seller_status'] = User.SellerStatus.PENDING
         user = User(**validated_data)
         user.set_password(password)
         user.save()
@@ -35,8 +37,19 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'role', 'phone', 'addresses']
-        read_only_fields = ['id', 'email']
+        fields = [
+            'id',
+            'email',
+            'username',
+            'first_name',
+            'last_name',
+            'role',
+            'phone',
+            'seller_status',
+            'seller_rejection_reason',
+            'addresses',
+        ]
+        read_only_fields = ['id', 'email', 'seller_status', 'seller_rejection_reason']
 
     def validate_role(self, value):
         """Пользователь может выбрать только buyer или seller. Admin — только через админку."""
@@ -49,3 +62,7 @@ class UserSerializer(serializers.ModelSerializer):
         if value not in (User.Role.BUYER, User.Role.SELLER):
             raise serializers.ValidationError('Доступны только роли Покупатель и Продавец')
         return value
+
+
+class SellerApplicationSerializer(serializers.Serializer):
+    message = serializers.CharField(required=False, allow_blank=True, max_length=500)

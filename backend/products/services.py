@@ -15,6 +15,10 @@ def apply_category_filter(queryset, raw_category):
 
 def get_active_product(product_id):
     try:
-        return Product.objects.get(pk=product_id, status=Product.Status.ACTIVE)
+        return Product.objects.get(
+            pk=product_id,
+            status=Product.Status.ACTIVE,
+            publication_status=Product.PublicationStatus.PUBLISHED,
+        )
     except Product.DoesNotExist:
         return None

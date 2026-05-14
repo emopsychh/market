@@ -8,6 +8,8 @@ export interface User {
   first_name: string
   last_name: string
   role: 'buyer' | 'seller' | 'admin'
+  seller_status?: 'not_requested' | 'pending' | 'approved' | 'rejected'
+  seller_rejection_reason?: string
   phone?: string
 }
 

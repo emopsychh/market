@@ -10,6 +10,7 @@ export const authApi = {
   me: () => api.get('/auth/me/'),
   updateMe: (data: { first_name?: string; last_name?: string; phone?: string; role?: string }) =>
     api.patch('/auth/me/', data),
+  sellerApplication: (data?: { message?: string }) => api.post('/auth/seller-application/', data ?? {}),
   getAddresses: () => api.get('/auth/addresses/'),
   addAddress: (data: { city: string; street: string; building: string; apartment?: string; postal_code?: string; is_default?: boolean }) =>
     api.post('/auth/addresses/', data),
