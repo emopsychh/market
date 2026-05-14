@@ -1,11 +1,12 @@
 import { useState, FormEvent, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import styles from './AuthPages.module.css'
 
 export function RegisterPage() {
   const { isAuthenticated, isLoading } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) navigate('/')
@@ -68,7 +69,7 @@ export function RegisterPage() {
   if (isLoading) return null
 
   return (
-    <div className={styles.screen} lang="ru">
+    <div key={location.pathname} className={`${styles.screen} page-enter`} lang="ru">
       <Link to="/" className={styles.back}>← На главную</Link>
       <div className={styles.wrapper}>
         <form className={styles.form} onSubmit={handleSubmit}>

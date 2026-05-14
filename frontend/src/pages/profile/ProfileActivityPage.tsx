@@ -137,6 +137,7 @@ export function ProfileActivityPage() {
     try {
       await productsApi.remove(productId)
       setMyProducts((prev) => prev.filter((p) => p.id !== productId))
+      await refreshUser()
     } finally {
       setDeletingId(null)
     }
@@ -176,6 +177,14 @@ export function ProfileActivityPage() {
   const letter = (user.first_name?.[0] || user.username?.[0] || user.email?.[0] || '?').toUpperCase()
   const joined = joinedLabel(user.date_joined)
 
+  const ratingAvg = user.seller_rating_avg
+  const ratingLabel =
+    ratingAvg != null && !Number.isNaN(Number(ratingAvg))
+      ? Number(ratingAvg).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+      : '—'
+  const soldUnits = user.seller_sold_units ?? 0
+  const showcaseCount = user.seller_showcase_count ?? 0
+
   return (
     <div>
       <section className={styles.publicShell} aria-label="Публичная карточка профиля">
@@ -197,19 +206,13 @@ export function ProfileActivityPage() {
         </div>
         <div className={styles.publicStats}>
           <span className={styles.publicStat}>
-            Заказы <strong>{ordersLoading ? '…' : orders.length}</strong>
+            Средняя оценка <strong>{ratingLabel}</strong>
           </span>
           <span className={styles.publicStat}>
-            Витрина <strong>{!isApprovedSeller ? '—' : loadingMine ? '…' : myProducts.length}</strong>
+            Продано <strong>{soldUnits}</strong>
           </span>
           <span className={styles.publicStat}>
-            Избранное <strong>{wishlistLoading ? '…' : wishlistProducts.length}</strong>
-          </span>
-          <span className={styles.publicStat}>
-            Продано <strong>0</strong>
-          </span>
-          <span className={styles.publicStat}>
-            Отзывы <strong>0</strong>
+            На витрине <strong>{showcaseCount}</strong>
           </span>
         </div>
         <div className={styles.publicBioWrap}>

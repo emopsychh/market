@@ -43,6 +43,8 @@ export interface ProductCreatePayload {
   name: string
   description?: string
   price: string
+  /** Старая цена (выше `price`) — зачёркивание и % скидки в каталоге */
+  compare_at_price?: string | null
   category: number
   sizes: string[]
   colors: string[]
@@ -51,9 +53,20 @@ export interface ProductCreatePayload {
   status?: string
 }
 
+export type ProductListParams = {
+  category?: number
+  size?: string
+  color?: string
+  min_price?: string
+  max_price?: string
+  search?: string
+  brand?: string
+  /** Согласовано с выбором в шапке: male / female; унисекс попадает в обе витрины */
+  shop_gender?: 'male' | 'female'
+}
+
 export const productsApi = {
-  list: (params?: { category?: number; size?: string; color?: string; min_price?: string; max_price?: string; search?: string; brand?: string }) =>
-    api.get('/products/', { params }),
+  list: (params?: ProductListParams) => api.get('/products/', { params }),
   listMine: () => api.get('/products/mine/'),
   detail: (id: number) => api.get(`/products/${id}/`),
   create: (data: ProductCreatePayload) => api.post('/products/create/', data),

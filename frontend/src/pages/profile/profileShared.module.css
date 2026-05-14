@@ -85,6 +85,50 @@
   border-color: rgba(225, 224, 204, 0.35);
 }
 
+.textarea {
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--color-text);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(225, 224, 204, 0.14);
+  border-radius: 12px;
+  padding: 10px 14px;
+  transition: border-color var(--transition-fast);
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: rgba(225, 224, 204, 0.35);
+}
+
+.select {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--color-text);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(225, 224, 204, 0.14);
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+  color-scheme: dark;
+}
+
+.select:focus {
+  outline: none;
+  border-color: rgba(225, 224, 204, 0.35);
+}
+
+.select option {
+  background: #141414;
+  color: #f2f1e8;
+}
+
 .submit {
   font-family: var(--font-mono);
   font-size: 0.78rem;
@@ -182,7 +226,8 @@
 .wishlistGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-md);
+  gap: var(--space-xl);
+  align-items: stretch;
 }
 
 .addressList,

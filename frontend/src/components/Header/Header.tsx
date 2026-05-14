@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { SearchBar } from '../SearchBar/SearchBar'
 import { useAuth } from '../../contexts/AuthContext'
 import { useCart } from '../../contexts/CartContext'
+import { useShopGender } from '../../contexts/ShopGenderContext'
 import styles from './Header.module.css'
 
 const HEADER_LOGO_SRC = '/brands/logo.png'
@@ -10,10 +11,12 @@ const HEADER_LOGO_SRC = '/brands/logo.png'
 export function Header() {
   const { user, isAuthenticated, isLoading, logout } = useAuth()
   const { itemCount } = useCart()
+  const { shopGender, selectMale, selectFemale } = useShopGender()
   const navigate = useNavigate()
   const location = useLocation()
   const cartRef = useRef<HTMLAnchorElement | null>(null)
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
+
   const [isCartPulse, setIsCartPulse] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   useEffect(() => {
@@ -54,6 +57,15 @@ export function Header() {
     user?.role !== 'admin' &&
     (user?.role === 'buyer' || user?.seller_status === 'rejected' || user?.seller_status === 'not_requested')
   const sellerPending = user?.role === 'seller' && user?.seller_status === 'pending'
+
+  const catalogCategoryId = (() => {
+    if (location.pathname !== '/products') return null
+    const raw = new URLSearchParams(location.search).get('category')
+    if (!raw) return null
+    const n = parseInt(raw, 10)
+    return Number.isNaN(n) ? null : n
+  })()
+  const isAllCatalog = location.pathname === '/products' && catalogCategoryId === null
 
   useEffect(() => {
     const onCartAdded = (event: Event) => {
@@ -112,6 +124,7 @@ export function Header() {
 
   return (
     <header className={styles.header}>
+      <div className={styles.headerStack}>
       <div className={styles.island}>
         <div className={styles.inner}>
           <div className={styles.start}>
@@ -128,30 +141,68 @@ export function Header() {
           </div>
 
         <div className={styles.center}>
-          <nav className={styles.navPill} aria-label="Основная навигация">
-            <Link to="/products" className={styles.pillLink}>
-              Products
-            </Link>
-            {canCreateProducts && (
-              <Link to="/products/new" className={styles.pillLinkCta}>
-                New
+          <div className={styles.centerRail}>
+            <nav className={styles.navPill} aria-label="Каталог и действия">
+              <div className={styles.navCatalog}>
+                <Link
+                  to="/products"
+                  className={`${styles.catalogPill} ${styles.catalogPillNeutral} ${isAllCatalog ? styles.catalogPillActive : ''}`}
+                  lang="ru"
+                >
+                  Каталог
+                </Link>
+              </div>
+              <span className={styles.navSepVert} aria-hidden />
+              {canCreateProducts && (
+                <Link to="/products/new" className={styles.pillLinkCta}>
+                  New
+                </Link>
+              )}
+              {canShowBecomeSeller && (
+                <Link to="/seller/apply" className={styles.pillLinkCta} lang="ru">
+                  Продавец
+                </Link>
+              )}
+              <Link
+                ref={cartRef}
+                to="/cart"
+                className={`${styles.pillLink} ${styles.cartLink} ${isCartPulse ? styles.cartPulse : ''}`}
+                data-cart-anchor
+                aria-label="Корзина"
+              >
+                <svg
+                  className={styles.cartIcon}
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden
+                >
+                  <path
+                    d="M9 11V8a3 3 0 0 1 6 0v3"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M4 11h16l-1.3 9H5.3L4 11z"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="9" cy="21" r="1.25" fill="currentColor" />
+                  <circle cx="16" cy="21" r="1.25" fill="currentColor" />
+                </svg>
+                {isAuthenticated && itemCount > 0 && <span className={styles.cartBadge}>{itemCount}</span>}
               </Link>
-            )}
-            {canShowBecomeSeller && (
-              <Link to="/seller/apply" className={styles.pillLinkCta} lang="ru">
-                Продавец
-              </Link>
-            )}
-            <Link
-              ref={cartRef}
-              to="/cart"
-              className={`${styles.pillLink} ${styles.cartLink} ${isCartPulse ? styles.cartPulse : ''}`}
-              data-cart-anchor
-            >
-              Cart
-              {isAuthenticated && itemCount > 0 && <span className={styles.cartBadge}>{itemCount}</span>}
-            </Link>
-          </nav>
+            </nav>
+            <span className={styles.railDivider} aria-hidden />
+            <div className={styles.searchSlot}>
+              <SearchBar className={styles.searchInHeader} />
+            </div>
+          </div>
         </div>
 
         <div className={styles.end}>
@@ -160,7 +211,6 @@ export function Header() {
               Модерация
             </span>
           )}
-          <SearchBar />
           {isLoading ? (
             <span className={styles.user}>
               <span className={styles.avatarPlaceholder} aria-hidden />
@@ -216,6 +266,24 @@ export function Header() {
           )}
         </div>
         </div>
+      </div>
+
+      <nav className={styles.genderStrip} aria-label="Выбор витрины" lang="ru">
+        <button
+          type="button"
+          className={`${styles.genderStripBtn} ${shopGender === 'male' ? styles.genderStripBtnActive : ''}`}
+          onClick={selectMale}
+        >
+          Для него
+        </button>
+        <button
+          type="button"
+          className={`${styles.genderStripBtn} ${shopGender === 'female' ? styles.genderStripBtnActive : ''}`}
+          onClick={selectFemale}
+        >
+          Для неё
+        </button>
+      </nav>
       </div>
     </header>
   )

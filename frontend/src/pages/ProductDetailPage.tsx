@@ -4,7 +4,7 @@ import { productsApi, cartApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { useCart } from '../contexts/CartContext'
 import { useWishlist } from '../contexts/WishlistContext'
-import { formatPriceRub } from '../utils/price'
+import { formatDiscountPercent, formatPriceRub, parsePriceNum } from '../utils/price'
 import { resolveMediaUrl } from '../utils/mediaUrl'
 import { pushProductId } from '../utils/recentlyViewed'
 import styles from './ProductDetailPage.module.css'
@@ -20,6 +20,7 @@ interface ProductDetail {
   name: string
   description: string
   price: string
+  compare_at_price?: string | null
   category: number
   category_name: string
   seller_name: string
@@ -191,6 +192,15 @@ export function ProductDetailPage() {
 
   const categoryHref = `/products?category=${product.category}&category_name=${encodeURIComponent(product.category_name)}`
 
+  const currentPrice = parsePriceNum(product.price)
+  const comparePrice = parsePriceNum(product.compare_at_price ?? null)
+  const showSale =
+    currentPrice !== null && comparePrice !== null && comparePrice > currentPrice
+  const discountLabel =
+    showSale && comparePrice !== null && currentPrice !== null
+      ? formatDiscountPercent(comparePrice, currentPrice)
+      : ''
+
   return (
     <div className="container">
       <Link to="/products" className={styles.back}>
@@ -228,7 +238,17 @@ export function ProductDetailPage() {
 
         <div className={styles.panel}>
           <h1 className={styles.name}>{product.name}</h1>
-          <p className={styles.price}>{formatPriceRub(product.price)}</p>
+          {showSale && comparePrice !== null && currentPrice !== null ? (
+            <div className={styles.priceBlock}>
+              <div className={styles.priceRow}>
+                <span className={styles.priceWas}>{formatPriceRub(comparePrice)}</span>
+                <span className={styles.priceNow}>{formatPriceRub(currentPrice)}</span>
+              </div>
+              {discountLabel ? <p className={styles.discount}>{discountLabel}</p> : null}
+            </div>
+          ) : (
+            <p className={styles.price}>{formatPriceRub(product.price)}</p>
+          )}
           <Link to={categoryHref} className={styles.category}>
             {product.category_name}
           </Link>

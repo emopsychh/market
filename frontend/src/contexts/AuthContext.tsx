@@ -22,6 +22,12 @@ export interface User {
   seller_rejection_reason?: string
   phone?: string
   seller_application?: SellerApplicationSummary | null
+  /** Средняя оценка как продавца; null — пока нет отзывов */
+  seller_rating_avg?: number | null
+  /** Продано единиц товара (подтверждённые и дальше заказы) */
+  seller_sold_units?: number
+  /** Опубликованные активные позиции на витрине */
+  seller_showcase_count?: number
 }
 
 interface AuthContextType {

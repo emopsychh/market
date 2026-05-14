@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { categoriesApi, productsApi } from '../api'
 import { BRAND_OPTIONS } from '../constants/brands'
+import shared from './profile/profileShared.module.css'
 import styles from './ProductNewPage.module.css'
 
 interface CategoryOption {
@@ -26,6 +27,7 @@ export function ProductNewPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
+  const [compareAtPrice, setCompareAtPrice] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [sizes, setSizes] = useState('S, M, L')
   const [gender, setGender] = useState<'male' | 'female' | 'unisex'>('male')
@@ -104,12 +106,24 @@ export function ProductNewPage() {
       return
     }
 
+    const compareRaw = compareAtPrice.trim()
+    let compareAt: string | undefined
+    if (compareRaw) {
+      const c = parseFloat(compareRaw.replace(',', '.'))
+      if (Number.isNaN(c) || c <= priceNum) {
+        setError('«Цена до скидки» должна быть выше текущей цены')
+        return
+      }
+      compareAt = c.toFixed(2)
+    }
+
     setSubmitting(true)
     try {
       const { data } = await productsApi.create({
         name: name.trim(),
         description: description.trim() || undefined,
         price: priceNum.toFixed(2),
+        ...(compareAt ? { compare_at_price: compareAt } : {}),
         category: cat,
         sizes: parseList(sizes),
         colors: [],
@@ -145,7 +159,7 @@ export function ProductNewPage() {
   if (isLoading) {
     return (
       <div className="container">
-        <p className={styles.hint}>Загрузка...</p>
+        <p className={styles.loadingHint}>Загрузка...</p>
       </div>
     )
   }
@@ -156,90 +170,154 @@ export function ProductNewPage() {
 
   return (
     <div className="container">
-      <div className={styles.wrap}>
-        <h1 className={styles.title}>/products/new</h1>
-        <p className={styles.hint}>
-          После публикации товар сразу появляется в каталоге. Пол нужен, чтобы покупатели находили его в разделе
-          «Мужчинам» или «Женщинам».
-        </p>
+      <div className={styles.page}>
+        <header className={styles.head}>
+          <p className={shared.pageKicker} lang="en">
+            /products/new
+          </p>
+          <h1 className={shared.pageTitle}>Новый товар</h1>
+          <p className={styles.lead}>
+            После публикации карточка сразу в каталоге. Пол нужен для разделов «Мужчинам» / «Женщинам».
+          </p>
+        </header>
 
-        <form className={styles.form} onSubmit={handleSubmit}>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="p-name">
-              Название
-            </label>
-            <input
-              id="p-name"
-              className={styles.input}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              maxLength={200}
-            />
-          </div>
+        <form className={styles.formStack} onSubmit={handleSubmit}>
+          <section className={shared.panel} aria-labelledby="product-main-heading">
+            <h2 id="product-main-heading" className={shared.sectionTitle}>
+              Основное
+            </h2>
+            <div className={shared.field}>
+              <label className={shared.label} htmlFor="p-name">
+                Название
+              </label>
+              <input
+                id="p-name"
+                className={shared.input}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                maxLength={200}
+              />
+            </div>
+            <div className={shared.field}>
+              <label className={shared.label} htmlFor="p-desc">
+                Описание
+              </label>
+              <textarea
+                id="p-desc"
+                className={shared.textarea}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                spellCheck={false}
+                rows={4}
+              />
+            </div>
+          </section>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="p-desc">
-              Описание
-            </label>
-            <textarea
-              id="p-desc"
-              className={styles.textarea}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              spellCheck={false}
-            />
-          </div>
+          <section className={shared.panel} aria-labelledby="product-catalog-heading">
+            <h2 id="product-catalog-heading" className={shared.sectionTitle}>
+              Цена и каталог
+            </h2>
+            <div className={styles.row2}>
+              <div className={shared.field}>
+                <label className={shared.label} htmlFor="p-price">
+                  Цена (₽)
+                </label>
+                <input
+                  id="p-price"
+                  className={shared.input}
+                  inputMode="decimal"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  required
+                />
+              </div>
+              <div className={shared.field}>
+                <label className={shared.label} htmlFor="p-cat">
+                  Категория
+                </label>
+                <select
+                  id="p-cat"
+                  className={shared.select}
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  disabled={categoriesLoading || categoryOptions.length === 0}
+                  required
+                >
+                  {categoryOptions.length === 0 ? (
+                    <option value="">Нет категорий</option>
+                  ) : (
+                    categoryOptions.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            </div>
+            <div className={shared.field}>
+              <label className={shared.label} htmlFor="p-compare">
+                Цена до скидки (₽)
+              </label>
+              <input
+                id="p-compare"
+                className={shared.input}
+                inputMode="decimal"
+                value={compareAtPrice}
+                onChange={(e) => setCompareAtPrice(e.target.value)}
+                placeholder="необязательно"
+                aria-describedby="p-compare-hint"
+              />
+              <span id="p-compare-hint" className={styles.fieldHint}>
+                Если выше текущей цены — в витрине покажем зачёркнутую цену и скидку
+              </span>
+            </div>
+            <div className={styles.row2}>
+              <div className={shared.field}>
+                <label className={shared.label} htmlFor="p-brand">
+                  Бренд
+                </label>
+                <select
+                  id="p-brand"
+                  className={shared.select}
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  required
+                >
+                  {BRAND_OPTIONS.map((item) => (
+                    <option key={item.slug} value={item.slug}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className={shared.field}>
+                <label className={shared.label} htmlFor="p-sizes">
+                  Размеры
+                </label>
+                <input
+                  id="p-sizes"
+                  className={shared.input}
+                  value={sizes}
+                  onChange={(e) => setSizes(e.target.value)}
+                  placeholder="S, M, L"
+                  aria-describedby="p-sizes-hint"
+                />
+                <span id="p-sizes-hint" className={styles.fieldHint}>
+                  через запятую
+                </span>
+              </div>
+            </div>
+          </section>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="p-price">
-              Цена (₽)
-            </label>
-            <input
-              id="p-price"
-              className={styles.input}
-              inputMode="decimal"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="p-cat">
-              Категория
-            </label>
-            <select
-              id="p-cat"
-              className={styles.select}
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              disabled={categoriesLoading || categoryOptions.length === 0}
-              required
-            >
-              {categoryOptions.length === 0 ? (
-                <option value="">Нет категорий — создайте в админке</option>
-              ) : (
-                categoryOptions.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-
-          <div className={styles.field}>
-            <span className={styles.label}>Пол</span>
+          <section className={shared.panel} aria-labelledby="product-gender-heading">
+            <h2 id="product-gender-heading" className={shared.sectionTitle}>
+              Пол
+            </h2>
             <div className={styles.genderRow}>
               <label className={styles.genderOption}>
-                <input
-                  type="radio"
-                  name="gender"
-                  value="male"
-                  checked={gender === 'male'}
-                  onChange={() => setGender('male')}
-                />
+                <input type="radio" name="gender" value="male" checked={gender === 'male'} onChange={() => setGender('male')} />
                 <span>Мужской</span>
               </label>
               <label className={styles.genderOption}>
@@ -263,78 +341,54 @@ export function ProductNewPage() {
                 <span>Унисекс</span>
               </label>
             </div>
-          </div>
+          </section>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="p-brand">
-              Бренд
-            </label>
-            <select
-              id="p-brand"
-              className={styles.select}
-              value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-              required
-            >
-              {BRAND_OPTIONS.map((item) => (
-                <option key={item.slug} value={item.slug}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="p-sizes">
-              Размеры (через запятую)
-            </label>
-            <input
-              id="p-sizes"
-              className={styles.input}
-              value={sizes}
-              onChange={(e) => setSizes(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <span className={styles.label} id="p-img-label">
-              Фото (можно несколько)
-            </span>
-            <div className={styles.fileBlock}>
-              <input
-                id="p-img"
-                className={styles.fileHidden}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFiles}
-                aria-labelledby="p-img-label"
-              />
-              <label htmlFor="p-img" className={styles.filePickBtn}>
-                Прикрепить
-              </label>
-              {images.length > 0 ? (
-                <ul className={styles.fileList}>
-                  {images.map((f) => (
-                    <li key={`${f.name}-${f.size}`}>{f.name}</li>
-                  ))}
-                </ul>
-              ) : (
-                <span className={styles.fileHint}>Файлы не выбраны</span>
-              )}
-              <p className={styles.fileHelp}>
-                Выберите несколько файлов за раз (Ctrl или Shift) — все фото будут в карточке товара и в каталоге.
-              </p>
+          <section className={shared.panel} aria-labelledby="product-photos-heading">
+            <h2 id="product-photos-heading" className={shared.sectionTitle}>
+              Фото
+            </h2>
+            <div className={shared.field}>
+              <span className={shared.label} id="p-img-label">
+                Загрузка
+              </span>
+              <div className={styles.fileBlock}>
+                <input
+                  id="p-img"
+                  className={styles.fileHidden}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFiles}
+                  aria-labelledby="p-img-label"
+                />
+                <label htmlFor="p-img" className={shared.sellerBtn}>
+                  Выбрать файлы
+                </label>
+                {images.length > 0 ? (
+                  <ul className={styles.fileList}>
+                    {images.map((f) => (
+                      <li key={`${f.name}-${f.size}`}>{f.name}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className={styles.fileHint}>не выбрано</span>
+                )}
+                <p className={styles.fileHelp}>Несколько файлов за раз (Ctrl / Shift) — сетка превью в карточке.</p>
+              </div>
             </div>
-          </div>
+          </section>
 
-          {error && <p className={styles.error}>{error}</p>}
+          {error && <p className={shared.errorBox}>{error}</p>}
 
           <div className={styles.actions}>
-            <button type="submit" className={styles.submit} disabled={submitting || categoryOptions.length === 0}>
+            <button
+              type="submit"
+              className={`${shared.submit} ${shared.submitTight}`}
+              disabled={submitting || categoryOptions.length === 0}
+            >
               {submitting ? 'Сохранение…' : 'Опубликовать'}
             </button>
-            <Link to="/products" className={styles.cancel}>
+            <Link to="/products" className={shared.sellerBtn}>
               Отмена
             </Link>
           </div>

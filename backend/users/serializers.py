@@ -52,6 +52,9 @@ class SellerApplicationBriefSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     addresses = DeliveryAddressSerializer(many=True, read_only=True)
     seller_application = serializers.SerializerMethodField()
+    seller_rating_avg = serializers.SerializerMethodField()
+    seller_sold_units = serializers.SerializerMethodField()
+    seller_showcase_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -69,6 +72,9 @@ class UserSerializer(serializers.ModelSerializer):
             'seller_rejection_reason',
             'addresses',
             'seller_application',
+            'seller_rating_avg',
+            'seller_sold_units',
+            'seller_showcase_count',
         ]
         read_only_fields = [
             'id',
@@ -77,6 +83,9 @@ class UserSerializer(serializers.ModelSerializer):
             'seller_rejection_reason',
             'seller_application',
             'date_joined',
+            'seller_rating_avg',
+            'seller_sold_units',
+            'seller_showcase_count',
         ]
 
     def validate_bio(self, value):
@@ -89,6 +98,33 @@ class UserSerializer(serializers.ModelSerializer):
         if not app:
             return None
         return SellerApplicationBriefSerializer(app).data
+
+    def get_seller_rating_avg(self, obj):
+        """Средняя оценка продавца; позже — из модели отзывов."""
+        return None
+
+    def get_seller_sold_units(self, obj):
+        from django.db.models import Sum
+        from orders.models import Order, OrderItem
+
+        total = OrderItem.objects.filter(
+            seller=obj,
+            order__status__in=[
+                Order.Status.CONFIRMED,
+                Order.Status.SHIPPED,
+                Order.Status.DELIVERED,
+            ],
+        ).aggregate(s=Sum('quantity'))['s']
+        return int(total or 0)
+
+    def get_seller_showcase_count(self, obj):
+        from products.models import Product
+
+        return Product.objects.filter(
+            seller=obj,
+            status=Product.Status.ACTIVE,
+            publication_status=Product.PublicationStatus.PUBLISHED,
+        ).count()
 
     def validate_role(self, value):
         """Пользователь может выбрать только buyer или seller. Admin — только через админку."""

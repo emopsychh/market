@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { productsApi } from '../api'
+import { useShopGender } from '../contexts/ShopGenderContext'
 import { ProductCard, type Product } from '../components/ProductCard/ProductCard'
 import { getRecentIds } from '../utils/recentlyViewed'
 import { formatPriceRub } from '../utils/price'
@@ -78,6 +79,7 @@ interface RecentProduct {
 }
 
 export function HomePage() {
+  const { shopGender } = useShopGender()
   const [products, setProducts] = useState<Product[]>([])
   const [recentProducts, setRecentProducts] = useState<RecentProduct[]>([])
   const [loading, setLoading] = useState(true)
@@ -199,7 +201,7 @@ export function HomePage() {
     setLoading(true)
     setError(null)
     productsApi
-      .list()
+      .list(shopGender ? { shop_gender: shopGender } : undefined)
       .then((res) => {
         if (cancelled) return
         const list = (res.data.results ?? res.data ?? []) as Product[]
@@ -214,7 +216,7 @@ export function HomePage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [shopGender])
 
   useEffect(() => {
     let cancelled = false
@@ -276,12 +278,12 @@ export function HomePage() {
 
         <section className={styles.hero}>
           <h1 className="visually-hidden" lang="ru">
-            NGM — nextgen market, маркетплейс одежды
+            NGM — маркетплейс одежды: место для вещей и людей
           </h1>
           <p className={styles.subtitle}>
-            <span className={styles.subtitleMain}>Тишина в каталоге. Вещи — с контурами.</span>
+            <span className={styles.subtitleMain}>Место для вещей и людей.</span>
             <span className={styles.subtitleKicker} lang="en">
-              NGM / nextgen marketplace
+              NGM / people & pieces
             </span>
           </p>
         </section>
@@ -308,7 +310,7 @@ export function HomePage() {
                   /new
                 </p>
                 <h2 className={styles.feedTitle} lang="ru">
-                  Новые поступления
+                  Новинки
                 </h2>
               </div>
               <Link to="/products" className={styles.feedMore} lang="en">

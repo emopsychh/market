@@ -92,6 +92,12 @@ class ProductListView(generics.ListAPIView):
         brand = self.request.query_params.get('brand')
         if brand:
             qs = qs.filter(brand=brand)
+        # Витрина «Для него» / «Для неё» (клиент: shop_gender=male|female; унисекс в обеих)
+        shop_gender = (self.request.query_params.get('shop_gender') or '').strip().lower()
+        if shop_gender == 'male':
+            qs = qs.filter(Q(gender=Product.Gender.MALE) | Q(gender=Product.Gender.UNISEX))
+        elif shop_gender == 'female':
+            qs = qs.filter(Q(gender=Product.Gender.FEMALE) | Q(gender=Product.Gender.UNISEX))
         return qs
 
 

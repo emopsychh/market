@@ -63,6 +63,14 @@ class Product(models.Model):
     name = models.CharField('Название', max_length=200)
     description = models.TextField('Описание', blank=True)
     price = models.DecimalField('Цена', max_digits=10, decimal_places=2)
+    compare_at_price = models.DecimalField(
+        'Цена до скидки',
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Если указана и выше текущей цены, в каталоге показывается зачёркнутая «старая» цена и скидка.',
+    )
     category = models.ForeignKey(
         Category,
         on_delete=models.CASCADE,

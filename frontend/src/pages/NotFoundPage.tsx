@@ -1,9 +1,11 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import styles from './NotFoundPage.module.css'
 
 export function NotFoundPage() {
+  const location = useLocation()
+
   return (
-    <div className={styles.screen}>
+    <div key={location.pathname} className={`${styles.screen} page-enter`}>
       <div className={styles.grid} aria-hidden>
         <span className={styles.coordX}>A</span>
         <span className={styles.coordX}>B</span>

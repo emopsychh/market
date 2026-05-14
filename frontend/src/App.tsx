@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { CartProvider } from './contexts/CartContext'
 import { WishlistProvider } from './contexts/WishlistContext'
+import { ShopGenderProvider } from './contexts/ShopGenderContext'
 import { Layout } from './components/Layout/Layout'
 import { HomePage } from './pages/HomePage'
 import { ProductsPage } from './pages/ProductsPage'
@@ -23,7 +24,8 @@ function App() {
       <WishlistProvider>
         <CartProvider>
           <BrowserRouter>
-            <Routes>
+            <ShopGenderProvider>
+              <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/" element={<Layout />}>
@@ -41,7 +43,8 @@ function App() {
                 <Route path="seller/apply" element={<SellerApplyPage />} />
               </Route>
               <Route path="*" element={<NotFoundPage />} />
-            </Routes>
+              </Routes>
+            </ShopGenderProvider>
           </BrowserRouter>
         </CartProvider>
       </WishlistProvider>

@@ -118,6 +118,42 @@
   white-space: nowrap;
 }
 
+.priceBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.priceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.65rem;
+}
+
+.priceWas {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.priceNow {
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #f87171;
+  white-space: nowrap;
+}
+
+.discount {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f87171;
+}
+
 .category {
   font-size: 0.85rem;
   color: var(--color-text-secondary);

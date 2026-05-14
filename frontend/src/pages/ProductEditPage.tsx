@@ -29,6 +29,7 @@ export function ProductEditPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
+  const [compareAtPrice, setCompareAtPrice] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [sizes, setSizes] = useState('S, M, L')
   const [gender, setGender] = useState<'male' | 'female' | 'unisex'>('male')
@@ -108,6 +109,7 @@ export function ProductEditPage() {
           name: string
           description: string
           price: string
+          compare_at_price?: string | null
           category: number
           sizes: string[]
           gender: string
@@ -119,6 +121,7 @@ export function ProductEditPage() {
         setName(p.name)
         setDescription(p.description ?? '')
         setPrice(String(p.price))
+        setCompareAtPrice(p.compare_at_price != null && p.compare_at_price !== '' ? String(p.compare_at_price) : '')
         setCategoryId(String(p.category))
         setSizes((p.sizes ?? []).join(', '))
         setGender(p.gender === 'female' ? 'female' : p.gender === 'unisex' ? 'unisex' : 'male')
@@ -158,12 +161,26 @@ export function ProductEditPage() {
       return
     }
 
+    const compareRaw = compareAtPrice.trim()
+    let comparePayload: string | null
+    if (!compareRaw) {
+      comparePayload = null
+    } else {
+      const c = parseFloat(compareRaw.replace(',', '.'))
+      if (Number.isNaN(c) || c <= priceNum) {
+        setError('«Цена до скидки» должна быть выше текущей цены')
+        return
+      }
+      comparePayload = c.toFixed(2)
+    }
+
     setSubmitting(true)
     try {
       await productsApi.update(productId, {
         name: name.trim(),
         description: description.trim() || undefined,
         price: priceNum.toFixed(2),
+        compare_at_price: comparePayload,
         category: cat,
         sizes: parseList(sizes),
         colors: [],
@@ -266,6 +283,21 @@ export function ProductEditPage() {
               onChange={(e) => setPrice(e.target.value)}
               required
             />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="p-compare">
+              Цена до скидки (₽)
+            </label>
+            <input
+              id="p-compare"
+              className={styles.input}
+              inputMode="decimal"
+              value={compareAtPrice}
+              onChange={(e) => setCompareAtPrice(e.target.value)}
+              placeholder="пусто — без скидки в витрине"
+            />
+            <p className={styles.fileHelp}>Выше текущей цены — зачёркнутая цена и процент в каталоге.</p>
           </div>
 
           <div className={styles.field}>

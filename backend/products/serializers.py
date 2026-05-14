@@ -27,7 +27,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'price', 'category', 'category_name',
+            'id', 'name', 'price', 'compare_at_price', 'category', 'category_name',
             'sizes', 'colors', 'gender', 'brand', 'first_image', 'preview_images', 'images_count',
             'status', 'publication_status',
         ]
@@ -70,7 +70,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'description', 'price', 'category', 'category_name',
+            'id', 'name', 'description', 'price', 'compare_at_price', 'category', 'category_name',
             'seller', 'seller_name', 'sizes', 'colors', 'gender', 'brand', 'listing_category_ids',
             'images', 'status', 'publication_status', 'moderation_note',
             'created_at', 'updated_at'
@@ -88,9 +88,24 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'description', 'price', 'category', 'sizes', 'colors',
+            'id', 'name', 'description', 'price', 'compare_at_price', 'category', 'sizes', 'colors',
             'gender', 'brand', 'status', 'publication_status',
         ]
+
+    def validate(self, attrs):
+        instance = getattr(self, 'instance', None)
+        price = attrs.get('price')
+        if price is None and instance is not None:
+            price = instance.price
+        if 'compare_at_price' in attrs:
+            compare = attrs['compare_at_price']
+        else:
+            compare = instance.compare_at_price if instance is not None else None
+        if compare is not None and price is not None and compare <= price:
+            raise serializers.ValidationError(
+                {'compare_at_price': 'Цена до скидки должна быть выше текущей цены.'}
+            )
+        return attrs
 
     def validate_publication_status(self, value):
         request = self.context.get('request')
@@ -103,11 +118,11 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request_user = self.context['request'].user
         validated_data['seller'] = request_user
-        if not request_user.is_admin:
-            validated_data['publication_status'] = Product.PublicationStatus.PENDING_REVIEW
-            validated_data['moderation_note'] = ''
         if validated_data.get('colors') is None:
             validated_data['colors'] = []
+        # Каталог отдаёт только published; создавать могут только админ и подтверждённый продавец.
+        validated_data['publication_status'] = Product.PublicationStatus.PUBLISHED
+        validated_data['moderation_note'] = ''
         return Product.objects.create(**validated_data)
 
     def update(self, instance, validated_data):

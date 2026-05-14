@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { productsApi } from '../api'
+import { useShopGender } from '../contexts/ShopGenderContext'
 import { ProductCard, type Product } from '../components/ProductCard/ProductCard'
 import { BRAND_NAME_BY_SLUG } from '../constants/brands'
 import styles from './ProductsPage.module.css'
 
 export function ProductsPage() {
+  const { shopGender } = useShopGender()
   const [searchParams] = useSearchParams()
   const search = searchParams.get('search') ?? ''
   const categoryId = searchParams.get('category') ?? ''
@@ -19,19 +21,20 @@ export function ProductsPage() {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    const params: { search?: string; category?: number; brand?: string } = {}
+    const params: { search?: string; category?: number; brand?: string; shop_gender?: 'male' | 'female' } = {}
     if (search) params.search = search
     if (categoryId) {
       const parsedCategory = parseInt(categoryId, 10)
       if (!Number.isNaN(parsedCategory)) params.category = parsedCategory
     }
     if (brand) params.brand = brand
+    if (shopGender) params.shop_gender = shopGender
     productsApi
       .list(Object.keys(params).length ? params : undefined)
       .then((res) => setProducts(res.data.results ?? res.data))
       .catch((err) => setError(err.message || 'Ошибка загрузки'))
       .finally(() => setLoading(false))
-  }, [search, categoryId, brand])
+  }, [search, categoryId, brand, shopGender])
 
   return (
     <div className="container">
