@@ -29,6 +29,10 @@ OrderItem — заказ, товар, цена и название на моме
 WishlistItem — пользователь, товар
 ```
 
+## Дорожная карта маркетплейса
+
+Список невыполненных и приоритетных направлений (оплата, подзаказы по продавцам, витрина продавца и т.д.) лежит в **[`MARKETPLACE_ROADMAP.md`](./MARKETPLACE_ROADMAP.md)** — его можно вести галочками, чтобы ничего не потерять во время работы над дизайном.
+
 ## Что есть в коде
 
 - Регистрация и вход (JWT)
@@ -109,7 +113,7 @@ PUT /api/orders/<id>/status/
 | | |
 |--|--|
 | Backend | Python 3, Django, Django REST Framework |
-| БД | SQLite, если в окружении нет `DB_NAME`; иначе PostgreSQL по переменным `DB_*` |
+| БД | PostgreSQL по переменным окружения `DB_*` |
 | Фронтенд | React, Vite |
 | Аутентификация | JWT (djangorestframework-simplejwt) |
 | Медиа | Локальная папка `media/` (Pillow) |
@@ -125,7 +129,7 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Копия настроек: из `.env.example` в `.env` (при использовании PostgreSQL — задать `DB_NAME` и при необходимости `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`).
+Копия настроек: из `.env.example` в `.env` (обязательно задать `DB_NAME`; при необходимости `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`).
 
 ```bash
 python manage.py migrate
@@ -134,6 +138,16 @@ python manage.py runserver
 ```
 
 API: `http://127.0.0.1:8000/api/`. Админка: `http://127.0.0.1:8000/admin/`.
+
+Админка использует тему Django Unfold (устанавливается из `requirements.txt`).
+
+Опционально для единого стиля backend-кода:
+
+```bash
+pip install -r requirements-dev.txt
+ruff check .
+black --check .
+```
 
 **Фронтенд**
 

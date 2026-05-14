@@ -40,7 +40,7 @@ export function ProductEditPage() {
   const [error, setError] = useState<string | null>(null)
   const [sellerId, setSellerId] = useState<number | null>(null)
 
-  const canSell = user?.role === 'seller' || user?.role === 'admin'
+  const canSell = user?.role === 'admin' || (user?.role === 'seller' && user?.seller_status === 'approved')
   const productId = id ? parseInt(id, 10) : NaN
 
   useEffect(() => {

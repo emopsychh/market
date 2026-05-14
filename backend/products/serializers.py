@@ -2,6 +2,8 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from .models import Category, Product, ProductImage, WishlistItem
 
+PREVIEW_IMAGES_LIMIT = 4
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,7 +29,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'price', 'category', 'category_name',
             'sizes', 'colors', 'gender', 'brand', 'first_image', 'preview_images', 'images_count',
-            'status',
+            'status', 'publication_status',
         ]
 
     def _image_url(self, img):
@@ -45,9 +47,9 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.ListField(child=serializers.URLField()))
     def get_preview_images(self, obj):
-        """До 4 URL для сетки на карточке в списке."""
+        """До PREVIEW_IMAGES_LIMIT URL для сетки на карточке в списке."""
         urls = []
-        for img in obj.images.all()[:4]:
+        for img in obj.images.all()[:PREVIEW_IMAGES_LIMIT]:
             u = self._image_url(img)
             if u:
                 urls.append(u)
@@ -70,7 +72,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'description', 'price', 'category', 'category_name',
             'seller', 'seller_name', 'sizes', 'colors', 'gender', 'brand', 'listing_category_ids',
-            'images', 'status',
+            'images', 'status', 'publication_status', 'moderation_note',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['seller']
@@ -87,14 +89,53 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'name', 'description', 'price', 'category', 'sizes', 'colors',
-            'gender', 'brand', 'status',
+            'gender', 'brand', 'status', 'publication_status',
         ]
 
+    def validate_publication_status(self, value):
+        request = self.context.get('request')
+        if not request or request.user.is_admin:
+            return value
+        if value not in (Product.PublicationStatus.DRAFT, Product.PublicationStatus.PENDING_REVIEW):
+            raise serializers.ValidationError('Продавец может установить только draft или pending_review')
+        return value
+
     def create(self, validated_data):
-        validated_data['seller'] = self.context['request'].user
+        request_user = self.context['request'].user
+        validated_data['seller'] = request_user
+        if not request_user.is_admin:
+            validated_data['publication_status'] = Product.PublicationStatus.PENDING_REVIEW
+            validated_data['moderation_note'] = ''
         if validated_data.get('colors') is None:
             validated_data['colors'] = []
         return Product.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        request_user = self.context['request'].user
+        if not request_user.is_admin:
+            if 'publication_status' in validated_data:
+                validated_data['publication_status'] = Product.PublicationStatus.PENDING_REVIEW
+            if validated_data:
+                validated_data['moderation_note'] = ''
+        return super().update(instance, validated_data)
+
+
+class ProductModerationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['publication_status', 'moderation_note']
+
+    def validate_publication_status(self, value):
+        if value not in (Product.PublicationStatus.PUBLISHED, Product.PublicationStatus.REJECTED):
+            raise serializers.ValidationError('Модерация допускает только published или rejected')
+        return value
+
+    def validate(self, attrs):
+        publication_status = attrs.get('publication_status')
+        moderation_note = (attrs.get('moderation_note') or '').strip()
+        if publication_status == Product.PublicationStatus.REJECTED and not moderation_note:
+            raise serializers.ValidationError({'moderation_note': 'Укажите причину отклонения товара.'})
+        return attrs
 
 
 class WishlistItemSerializer(serializers.ModelSerializer):

@@ -3,8 +3,10 @@ Django settings for Clothing Marketplace project.
 """
 
 import os
+import importlib.util
 from pathlib import Path
 from datetime import timedelta
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -22,20 +24,24 @@ if DEBUG:
     # В проде это следует отключать/заменять на явный список.
     ALLOWED_HOSTS = ['*']
 
-INSTALLED_APPS = [
+THIRD_PARTY_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Third party
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
     'drf_spectacular',
-    # Local
+]
+
+if importlib.util.find_spec('unfold'):
+    THIRD_PARTY_APPS.insert(0, 'unfold')
+
+INSTALLED_APPS = THIRD_PARTY_APPS + [
     'users',
     'products',
     'orders',
@@ -74,24 +80,19 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 _db_name = os.getenv('DB_NAME')
-if _db_name:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': _db_name,
-            'USER': os.getenv('DB_USER', 'postgres'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
-            'PORT': os.getenv('DB_PORT', '5432'),
-        }
+if not _db_name:
+    raise ImproperlyConfigured('DB_NAME is required. Configure PostgreSQL settings in .env file.')
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': _db_name,
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
@@ -173,4 +174,16 @@ CORS_ALLOW_CREDENTIALS = True
 GENDER_CATEGORY_SLUGS = {
     'male': os.getenv('CATEGORY_SLUG_MEN', 'muzhchinam'),
     'female': os.getenv('CATEGORY_SLUG_WOMEN', 'zhenshchinam'),
+}
+
+UNFOLD = {
+    'SITE_TITLE': 'Админ-панель маркетплейса',
+    'SITE_HEADER': 'Управление маркетплейсом',
+    'SITE_SUBHEADER': 'Модерация продавцов и объявлений',
+    'SITE_SYMBOL': 'shopping_bag',
+    'SHOW_HISTORY': True,
+    'SHOW_VIEW_ON_SITE': True,
+    'SIDEBAR': {
+        'show_search': False,
+    },
 }

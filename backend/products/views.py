@@ -11,12 +11,14 @@ from django.db.models import Q
 from .models import Category, Product, ProductImage, WishlistItem
 from .serializers import (
     CategorySerializer,
+    ProductModerationSerializer,
     ProductListSerializer,
     ProductDetailSerializer,
     ProductCreateUpdateSerializer,
     WishlistItemSerializer,
 )
-from .permissions import IsSellerOrAdmin
+from .permissions import IsAdminRole, IsSellerOrAdmin
+from .services import apply_category_filter, get_active_product
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
@@ -59,19 +61,14 @@ class ProductListView(generics.ListAPIView):
 
     def get_queryset(self):
         qs = (
-            Product.objects.filter(status='active')
+            Product.objects.filter(
+                status=Product.Status.ACTIVE,
+                publication_status=Product.PublicationStatus.PUBLISHED,
+            )
             .select_related('category')
             .prefetch_related('images', 'listing_categories')
         )
-        cat = self.request.query_params.get('category')
-        if cat:
-            try:
-                cid = int(cat)
-                qs = qs.filter(
-                    Q(category_id=cid) | Q(listing_categories__id=cid)
-                ).distinct()
-            except ValueError:
-                qs = qs.none()
+        qs = apply_category_filter(qs, self.request.query_params.get('category'))
         # Фильтр по размеру
         size = self.request.query_params.get('size')
         if size:
@@ -142,6 +139,13 @@ class ProductUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         return Product.objects.filter(seller=user)
 
 
+class ProductModerationView(generics.UpdateAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductModerationSerializer
+    permission_classes = [IsAuthenticated, IsAdminRole]
+    lookup_url_kwarg = 'pk'
+
+
 class ProductImageUploadSerializer(serializers.Serializer):
     image = serializers.ImageField()
 
@@ -171,9 +175,8 @@ def wishlist_items(request):
     if not product_id:
         return Response({'detail': 'Поле product обязательно'}, status=status.HTTP_400_BAD_REQUEST)
 
-    try:
-        product = Product.objects.get(pk=product_id, status='active')
-    except Product.DoesNotExist:
+    product = get_active_product(product_id)
+    if not product:
         return Response({'detail': 'Товар не найден'}, status=status.HTTP_404_NOT_FOUND)
 
     item, created = WishlistItem.objects.get_or_create(user=request.user, product=product)

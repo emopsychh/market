@@ -6,7 +6,10 @@ import { Layout } from './components/Layout/Layout'
 import { HomePage } from './pages/HomePage'
 import { ProductsPage } from './pages/ProductsPage'
 import { CartPage } from './pages/CartPage'
-import { ProfilePage } from './pages/ProfilePage'
+import { ProfileLayout } from './pages/profile/ProfileLayout'
+import { ProfileActivityPage } from './pages/profile/ProfileActivityPage'
+import { AccountSettingsPage } from './pages/profile/AccountSettingsPage'
+import { SellerApplyPage } from './pages/SellerApplyPage'
 import { ProductDetailPage } from './pages/ProductDetailPage'
 import { ProductNewPage } from './pages/ProductNewPage'
 import { ProductEditPage } from './pages/ProductEditPage'
@@ -31,7 +34,11 @@ function App() {
                 <Route path="products/:id" element={<ProductDetailPage />} />
                 <Route path="categories" element={<Navigate to="/" replace />} />
                 <Route path="cart" element={<CartPage />} />
-                <Route path="profile" element={<ProfilePage />} />
+                <Route path="profile" element={<ProfileLayout />}>
+                  <Route index element={<ProfileActivityPage />} />
+                  <Route path="settings" element={<AccountSettingsPage />} />
+                </Route>
+                <Route path="seller/apply" element={<SellerApplyPage />} />
               </Route>
               <Route path="*" element={<NotFoundPage />} />
             </Routes>

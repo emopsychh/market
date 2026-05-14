@@ -2,6 +2,27 @@
 
 from django.conf import settings
 
+DEFAULT_GENDER_CATEGORY_SLUGS = {
+    'male': 'muzhchinam',
+    'female': 'zhenshchinam',
+}
+
+MALE_CATEGORY_LOOKUPS = (
+    ('name__icontains', 'мужчин'),
+    ('slug__icontains', 'muzhchin'),
+    ('slug__iexact', 'men'),
+    ('name__iexact', 'Men'),
+)
+
+FEMALE_CATEGORY_LOOKUPS = (
+    ('name__icontains', 'женщин'),
+    ('slug__icontains', 'zhenshchin'),
+    ('slug__iexact', 'women'),
+    ('name__iexact', 'Women'),
+)
+
+FEMALE_TARGET_GENDERS = {'female', 'unisex'}
+
 
 def get_gender_root_category(gender: str):
     """
@@ -16,7 +37,7 @@ def get_gender_root_category(gender: str):
     slugs = getattr(
         settings,
         'GENDER_CATEGORY_SLUGS',
-        {'male': 'muzhchinam', 'female': 'zhenshchinam'},
+        DEFAULT_GENDER_CATEGORY_SLUGS,
     )
     slug = slugs.get(gender)
     if slug:
@@ -27,22 +48,14 @@ def get_gender_root_category(gender: str):
     roots = Category.objects.filter(parent__isnull=True)
 
     if gender == 'male':
-        for q in (
-            roots.filter(name__icontains='мужчин'),
-            roots.filter(slug__icontains='muzhchin'),
-            roots.filter(slug__iexact='men'),
-            roots.filter(name__iexact='Men'),
-        ):
+        for lookup, value in MALE_CATEGORY_LOOKUPS:
+            q = roots.filter(**{lookup: value})
             cat = q.first()
             if cat:
                 return cat
-    elif gender in ('female', 'unisex'):
-        for q in (
-            roots.filter(name__icontains='женщин'),
-            roots.filter(slug__icontains='zhenshchin'),
-            roots.filter(slug__iexact='women'),
-            roots.filter(name__iexact='Women'),
-        ):
+    elif gender in FEMALE_TARGET_GENDERS:
+        for lookup, value in FEMALE_CATEGORY_LOOKUPS:
+            q = roots.filter(**{lookup: value})
             cat = q.first()
             if cat:
                 return cat

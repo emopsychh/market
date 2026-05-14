@@ -30,13 +30,23 @@ export function SearchBar() {
       <input
         type="search"
         className={styles.input}
-        placeholder="/search"
+        placeholder="Поиск…"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         aria-label="Поиск товаров"
+        autoComplete="off"
       />
       <button type="submit" className={styles.button} aria-label="Искать">
-        →
+        <svg className={styles.buttonIcon} viewBox="0 0 24 24" aria-hidden>
+          <path
+            d="M9 6l6 6-6 6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </button>
     </form>
   )

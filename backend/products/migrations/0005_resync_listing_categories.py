@@ -4,10 +4,21 @@ from django.db import migrations
 
 
 def resync_listing(apps, schema_editor):
-    from products.models import Product
+    # Историческая миграция: используем apps.get_model, чтобы не зависеть от актуальной модели.
+    # Не менять логику постфактум без отдельного плана миграции данных.
+    Product = apps.get_model('products', 'Product')
+    Category = apps.get_model('products', 'Category')
 
-    for p in Product.objects.all():
-        p.sync_listing_categories()
+    female_roots = list(Category.objects.filter(slug__in=['zhenshchinam', 'женщинам']).values_list('id', flat=True))
+    male_roots = list(Category.objects.filter(slug__in=['muzhchinam', 'мужчинам']).values_list('id', flat=True))
+
+    for product in Product.objects.all().iterator():
+        ids = {product.category_id}
+        if product.gender == 'female':
+            ids.update(female_roots)
+        else:
+            ids.update(male_roots)
+        product.listing_categories.set(ids)
 
 
 class Migration(migrations.Migration):

@@ -35,7 +35,7 @@ export function ProductNewPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const canSell = user?.role === 'seller' || user?.role === 'admin'
+  const canSell = user?.role === 'admin' || (user?.role === 'seller' && user?.seller_status === 'approved')
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {

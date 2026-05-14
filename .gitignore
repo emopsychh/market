@@ -4,8 +4,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 .env
-*.sqlite3
-db.sqlite3
 
 # Django
 media/
