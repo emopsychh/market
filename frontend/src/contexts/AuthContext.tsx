@@ -1,16 +1,27 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { authApi } from '../api'
 
+export interface SellerApplicationSummary {
+  id: number
+  status: 'submitted' | 'approved' | 'rejected'
+  display_name: string
+  created_at: string
+  seller_type: string
+}
+
 export interface User {
   id: number
   email: string
   username: string
   first_name: string
   last_name: string
+  bio?: string
+  date_joined?: string
   role: 'buyer' | 'seller' | 'admin'
   seller_status?: 'not_requested' | 'pending' | 'approved' | 'rejected'
   seller_rejection_reason?: string
   phone?: string
+  seller_application?: SellerApplicationSummary | null
 }
 
 interface AuthContextType {

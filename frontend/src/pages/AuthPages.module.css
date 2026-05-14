@@ -39,6 +39,10 @@
   margin-bottom: var(--space-xl);
 }
 
+.title :lang(en) {
+  font-family: var(--font-display);
+}
+
 .error {
   color: #ef4444;
   font-size: 0.9rem;
@@ -84,7 +88,7 @@
 
 .submit {
   width: 100%;
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-size: 0.9rem;
   color: var(--color-bg);
   background: var(--color-text);

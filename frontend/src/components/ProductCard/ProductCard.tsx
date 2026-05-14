@@ -55,7 +55,8 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <Link to={`/products/${product.id}`} className={styles.card}>
-      <div className={styles.imageWrap}>
+      <div className={styles.cardInner}>
+        <div className={styles.imageWrap}>
         {urls.length === 0 ? (
           <div className={styles.placeholder}>/no image</div>
         ) : urls.length === 1 ? (
@@ -83,26 +84,27 @@ export function ProductCard({ product }: ProductCardProps) {
             ))}
           </div>
         )}
-      </div>
-      <div className={styles.info}>
-        <span className={styles.name}>{product.name}</span>
-        <div className={styles.meta}>
-          <span className={styles.price}>{formatPriceRub(product.price)}</span>
-          <span
-            className={inWishlist ? styles.wishActive : styles.wish}
-            role="button"
-            tabIndex={0}
-            aria-label={inWishlist ? 'Убрать из избранного' : 'Добавить в избранное'}
-            onClick={handleWishlistToggle}
-            onKeyDown={(e: KeyboardEvent<HTMLSpanElement>) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                void handleWishlistToggle(e as unknown as MouseEvent<HTMLSpanElement>)
-              }
-            }}
-          >
-            {inWishlist ? '♥' : '♡'}
-          </span>
+        </div>
+        <div className={styles.info}>
+          <span className={styles.name}>{product.name}</span>
+          <div className={styles.meta}>
+            <span className={styles.price}>{formatPriceRub(product.price)}</span>
+            <span
+              className={inWishlist ? styles.wishActive : styles.wish}
+              role="button"
+              tabIndex={0}
+              aria-label={inWishlist ? 'Убрать из избранного' : 'Добавить в избранное'}
+              onClick={handleWishlistToggle}
+              onKeyDown={(e: KeyboardEvent<HTMLSpanElement>) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  void handleWishlistToggle(e as unknown as MouseEvent<HTMLSpanElement>)
+                }
+              }}
+            >
+              {inWishlist ? '♥' : '♡'}
+            </span>
+          </div>
         </div>
       </div>
     </Link>

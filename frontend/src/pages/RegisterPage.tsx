@@ -68,16 +68,20 @@ export function RegisterPage() {
   if (isLoading) return null
 
   return (
-    <div className={styles.screen}>
+    <div className={styles.screen} lang="ru">
       <Link to="/" className={styles.back}>← На главную</Link>
       <div className={styles.wrapper}>
         <form className={styles.form} onSubmit={handleSubmit}>
-          <h1 className={styles.title}>/register</h1>
+          <h1 className={styles.title}>
+            <span lang="en">/register</span>
+          </h1>
 
         {typeof error === 'string' && error && <p className={styles.error}>{error}</p>}
 
         <div className={styles.field}>
-          <label htmlFor="email" className={styles.label}>Email</label>
+          <label htmlFor="email" className={styles.label} lang="en">
+            Email
+          </label>
           <input
             id="email"
             type="email"

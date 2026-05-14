@@ -1,6 +1,6 @@
 /* Design System — Clothing Marketplace (Dark Theme) */
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&family=Syne:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&family=Onest:wght@500;600;700&family=Syne:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@400;500;600;700&display=swap');
 
 :root {
   /* Colors — Monochrome palette */
@@ -19,10 +19,13 @@
   --color-accent: #ffffff;
   --color-accent-hover: #e5e5e5;
 
-  /* Typography */
+  /* Typography — Latin/EN default; Russian uses :lang(ru) to swap tokens to Unbounded */
   --font-display: 'Syne', system-ui, sans-serif;
+  --font-hero: 'Unbounded', 'Syne', system-ui, sans-serif;
   --font-body: 'Space Grotesk', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Consolas, monospace;
+  /* Cyrillic-friendly section titles on home feeds */
+  --font-feed-title: 'Onest', 'Space Grotesk', system-ui, sans-serif;
 
   /* Spacing */
   --space-xs: 0.25rem;
@@ -71,6 +74,20 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+/* Rebinds var(--font-display) / var(--font-body) for this subtree */
+:lang(ru) {
+  --font-display: 'Unbounded', 'Syne', system-ui, sans-serif;
+  --font-body: 'Unbounded', 'Space Grotesk', system-ui, sans-serif;
+  font-family: var(--font-body);
+}
+
+/* Latin microcopy inside Russian regions */
+:lang(en) {
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 a {

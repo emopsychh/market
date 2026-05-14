@@ -1,0 +1,18 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Отклонение заявки{% endblock %}
+{% block content %}
+<h1>Отклонить заявку #{{ app.pk }}</h1>
+<p><strong>{{ app.display_name }}</strong> — {{ app.user.email }}</p>
+<form method="post">{% csrf_token %}
+  <fieldset class="module aligned">
+    <div class="form-row">
+      <label for="id_reason">Комментарий для пользователя (причина отклонения):</label>
+      <textarea name="reason" id="id_reason" rows="4" cols="80" required placeholder="Кратко укажите причину"></textarea>
+    </div>
+  </fieldset>
+  <div class="submit-row">
+    <input type="submit" value="Отклонить заявку">
+    <a href="{% url 'admin:users_sellerapplication_changelist' %}">Отмена</a>
+  </div>
+</form>
+{% endblock %}

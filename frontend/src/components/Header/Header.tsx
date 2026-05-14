@@ -1,21 +1,48 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
-import { authApi } from '../../api'
 import { SearchBar } from '../SearchBar/SearchBar'
-import { CategoryNav } from '../CategoryNav/CategoryNav'
 import { useAuth } from '../../contexts/AuthContext'
 import { useCart } from '../../contexts/CartContext'
 import styles from './Header.module.css'
 
+const HEADER_LOGO_SRC = '/brands/logo.png'
+
 export function Header() {
-  const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth()
+  const { user, isAuthenticated, isLoading, logout } = useAuth()
   const { itemCount } = useCart()
   const navigate = useNavigate()
+  const location = useLocation()
   const cartRef = useRef<HTMLAnchorElement | null>(null)
+  const profileMenuRef = useRef<HTMLDivElement | null>(null)
   const [isCartPulse, setIsCartPulse] = useState(false)
-  const [isApplyingSeller, setIsApplyingSeller] = useState(false)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  useEffect(() => {
+    setProfileMenuOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!profileMenuOpen) return
+    const onPointerDown = (e: MouseEvent | TouchEvent) => {
+      const el = profileMenuRef.current
+      if (!el) return
+      const target = e.target as Node
+      if (!el.contains(target)) setProfileMenuOpen(false)
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setProfileMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('touchstart', onPointerDown, { passive: true })
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('touchstart', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [profileMenuOpen])
 
   const handleLogout = () => {
+    setProfileMenuOpen(false)
     logout()
     navigate('/')
   }
@@ -27,17 +54,6 @@ export function Header() {
     user?.role !== 'admin' &&
     (user?.role === 'buyer' || user?.seller_status === 'rejected' || user?.seller_status === 'not_requested')
   const sellerPending = user?.role === 'seller' && user?.seller_status === 'pending'
-
-  const handleBecomeSeller = async () => {
-    if (isApplyingSeller) return
-    setIsApplyingSeller(true)
-    try {
-      await authApi.sellerApplication()
-      await refreshUser()
-    } finally {
-      setIsApplyingSeller(false)
-    }
-  }
 
   useEffect(() => {
     const onCartAdded = (event: Event) => {
@@ -96,55 +112,110 @@ export function Header() {
 
   return (
     <header className={styles.header}>
-      <div className={styles.inner}>
-        <Link to="/" className={styles.logo}>
-          /NGM
-        </Link>
-        <SearchBar />
-        <nav className={styles.nav}>
-          <Link to="/products" className={styles.link}>PRODUCTS</Link>
-          {canCreateProducts && (
-            <Link to="/products/new" className={styles.linkNew}>
-              NEW
+      <div className={styles.island}>
+        <div className={styles.inner}>
+          <div className={styles.start}>
+            <Link to="/" className={styles.logo} aria-label="NGM — на главную">
+              <img
+                src={HEADER_LOGO_SRC}
+                alt=""
+                className={styles.logoImg}
+                width={200}
+                height={48}
+                decoding="async"
+              />
             </Link>
+          </div>
+
+        <div className={styles.center}>
+          <nav className={styles.navPill} aria-label="Основная навигация">
+            <Link to="/products" className={styles.pillLink}>
+              Products
+            </Link>
+            {canCreateProducts && (
+              <Link to="/products/new" className={styles.pillLinkCta}>
+                New
+              </Link>
+            )}
+            {canShowBecomeSeller && (
+              <Link to="/seller/apply" className={styles.pillLinkCta} lang="ru">
+                Продавец
+              </Link>
+            )}
+            <Link
+              ref={cartRef}
+              to="/cart"
+              className={`${styles.pillLink} ${styles.cartLink} ${isCartPulse ? styles.cartPulse : ''}`}
+              data-cart-anchor
+            >
+              Cart
+              {isAuthenticated && itemCount > 0 && <span className={styles.cartBadge}>{itemCount}</span>}
+            </Link>
+          </nav>
+        </div>
+
+        <div className={styles.end}>
+          {sellerPending && (
+            <span className={styles.sellerPending} lang="ru" title="Заявка на статус продавца на модерации">
+              Модерация
+            </span>
           )}
-          {canShowBecomeSeller && (
-            <button type="button" className={styles.linkNew} onClick={handleBecomeSeller} disabled={isApplyingSeller}>
-              {isApplyingSeller ? 'ОТПРАВКА...' : 'СТАТЬ ПРОДАВЦОМ'}
-            </button>
-          )}
-          {sellerPending && <span className={styles.sellerPending}>ЗАЯВКА НА МОДЕРАЦИИ</span>}
-          <Link
-            ref={cartRef}
-            to="/cart"
-            className={`${styles.link} ${styles.cartLink} ${isCartPulse ? styles.cartPulse : ''}`}
-            data-cart-anchor
-          >
-            CART
-            {isAuthenticated && itemCount > 0 && <span className={styles.cartBadge}>{itemCount}</span>}
-          </Link>
+          <SearchBar />
           {isLoading ? (
             <span className={styles.user}>
               <span className={styles.avatarPlaceholder} aria-hidden />
             </span>
           ) : isAuthenticated ? (
             <span className={styles.user}>
-              <Link to="/profile" className={styles.avatar} title="Профиль" aria-label="Профиль">
-                {avatarLetter.toUpperCase()}
-              </Link>
-              <button type="button" className={styles.logout} onClick={handleLogout}>Выход</button>
+              <div className={styles.profileMenu} ref={profileMenuRef}>
+                <button
+                  type="button"
+                  className={styles.avatarButton}
+                  title="Меню профиля"
+                  aria-label="Меню профиля"
+                  aria-expanded={profileMenuOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setProfileMenuOpen((o) => !o)}
+                >
+                  {avatarLetter.toUpperCase()}
+                </button>
+                {profileMenuOpen && (
+                  <div className={styles.profileDropdown} role="menu">
+                    <Link
+                      to="/profile"
+                      className={styles.profileDropdownLink}
+                      role="menuitem"
+                      onClick={() => setProfileMenuOpen(false)}
+                    >
+                      Профиль
+                    </Link>
+                    <Link
+                      to="/profile/settings"
+                      className={styles.profileDropdownLink}
+                      role="menuitem"
+                      onClick={() => setProfileMenuOpen(false)}
+                    >
+                      Настройки аккаунта
+                    </Link>
+                  </div>
+                )}
+              </div>
+              <button type="button" className={styles.logout} onClick={handleLogout} lang="ru">
+                Выход
+              </button>
             </span>
           ) : (
             <span className={styles.authLinks}>
-              <Link to="/login" className={styles.authLink}>LOGIN</Link>
-              <Link to="/register" className={styles.authLinkPrimary}>REGISTER</Link>
+              <Link to="/login" className={styles.authLink}>
+                Login
+              </Link>
+              <Link to="/register" className={styles.authLinkPrimary}>
+                Register
+              </Link>
             </span>
           )}
-        </nav>
-      </div>
-      <CategoryNav />
-      <div className={styles.subline}>
-        Hypertext Transfer Protocol Secure :// World Wide Web
+        </div>
+        </div>
       </div>
     </header>
   )

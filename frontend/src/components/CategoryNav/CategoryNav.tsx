@@ -85,7 +85,7 @@ export function CategoryNav() {
   if (parents.length === 0) return null
 
   return (
-    <div className={styles.wrap}>
+    <div className={styles.wrap} lang="ru">
       <div className={styles.primary}>
         {parents.map((cat) => (
           <button

@@ -7,7 +7,7 @@ export function Layout() {
   return (
     <div className={styles.layout}>
       <Header />
-      <main className={styles.main}>
+      <main className={styles.main} lang="ru">
         <Outlet />
       </main>
       <Footer />

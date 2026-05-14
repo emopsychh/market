@@ -1,44 +1,111 @@
+/* Единая капсула в стиле island-header (крем, стекло) */
 .form {
   display: flex;
-  align-items: center;
-  gap: 0;
-  min-width: 160px;
+  align-items: stretch;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 192px;
+  border-radius: 999px;
+  border: 1px solid rgba(225, 224, 204, 0.28);
+  background: rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.form:focus-within {
+  border-color: rgba(225, 224, 204, 0.48);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 1px rgba(225, 224, 204, 0.12);
 }
 
 .input {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-text);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-right: none;
-  padding: var(--space-sm) var(--space-md);
+  flex: 1;
+  min-width: 0;
   width: 100%;
-  max-width: 200px;
-  transition: border-color var(--transition-fast);
+  border: none;
+  margin: 0;
+  padding: 7px 4px 7px 12px;
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #e1e0cc;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .input::placeholder {
-  color: var(--color-text-muted);
+  color: rgba(225, 224, 204, 0.42);
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--color-border-strong);
+}
+
+/* Убираем нативный «clear» в WebKit — ломает капсулу */
+.input::-webkit-search-cancel-button {
+  display: none;
 }
 
 .button {
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  color: var(--color-text);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  padding: var(--space-sm) var(--space-md);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  margin: 0;
+  padding: 0 10px;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(225, 224, 204, 0.88);
   cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .button:hover {
-  border-color: var(--color-border-strong);
-  color: var(--color-accent);
+  color: #e1e0cc;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.buttonIcon {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+@media (min-width: 640px) {
+  .form {
+    max-width: 236px;
+  }
+
+  .input {
+    font-size: 0.68rem;
+    padding: 8px 6px 8px 14px;
+  }
+
+  .button {
+    padding: 0 12px;
+  }
+
+  .buttonIcon {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .form {
+    max-width: 268px;
+  }
+
+  .input {
+    font-size: 0.7rem;
+  }
 }

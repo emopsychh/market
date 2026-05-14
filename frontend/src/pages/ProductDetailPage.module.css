@@ -105,11 +105,11 @@
 }
 
 .name {
-  font-family: var(--font-display);
+  font-family: var(--font-feed-title);
   font-size: clamp(1.5rem, 4vw, 2rem);
   font-weight: 700;
   line-height: 1.15;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .price {

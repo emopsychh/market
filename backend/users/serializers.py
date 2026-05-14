@@ -1,11 +1,22 @@
 from rest_framework import serializers
-from .models import User, DeliveryAddress
+from .models import User, DeliveryAddress, SellerApplication
 
 
 class DeliveryAddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeliveryAddress
         fields = ['id', 'city', 'street', 'building', 'apartment', 'postal_code', 'is_default']
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+    new_password_confirm = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError({'new_password_confirm': 'Пароли не совпадают'})
+        return attrs
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -32,8 +43,15 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+class SellerApplicationBriefSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SellerApplication
+        fields = ['id', 'status', 'display_name', 'created_at', 'seller_type']
+
+
 class UserSerializer(serializers.ModelSerializer):
     addresses = DeliveryAddressSerializer(many=True, read_only=True)
+    seller_application = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -43,13 +61,34 @@ class UserSerializer(serializers.ModelSerializer):
             'username',
             'first_name',
             'last_name',
+            'bio',
+            'date_joined',
             'role',
             'phone',
             'seller_status',
             'seller_rejection_reason',
             'addresses',
+            'seller_application',
         ]
-        read_only_fields = ['id', 'email', 'seller_status', 'seller_rejection_reason']
+        read_only_fields = [
+            'id',
+            'email',
+            'seller_status',
+            'seller_rejection_reason',
+            'seller_application',
+            'date_joined',
+        ]
+
+    def validate_bio(self, value):
+        if value and len(value) > 800:
+            raise serializers.ValidationError('Не больше 800 символов.')
+        return value
+
+    def get_seller_application(self, obj):
+        app = obj.seller_applications.order_by('-created_at').first()
+        if not app:
+            return None
+        return SellerApplicationBriefSerializer(app).data
 
     def validate_role(self, value):
         """Пользователь может выбрать только buyer или seller. Admin — только через админку."""
@@ -64,5 +103,26 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
 
-class SellerApplicationSerializer(serializers.Serializer):
-    message = serializers.CharField(required=False, allow_blank=True, max_length=500)
+class SellerApplicationCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SellerApplication
+        fields = [
+            'seller_type',
+            'display_name',
+            'full_name',
+            'phone',
+            'city',
+            'country',
+            'description',
+            'terms_accepted',
+        ]
+
+    def validate_terms_accepted(self, value):
+        if not value:
+            raise serializers.ValidationError('Необходимо принять правила площадки.')
+        return value
+
+
+class SellerApplicationResultSerializer(serializers.Serializer):
+    user = UserSerializer()
+    application = SellerApplicationBriefSerializer()

@@ -1,3 +1,4 @@
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
@@ -6,10 +7,13 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import User, DeliveryAddress
+from .models import User, DeliveryAddress, SellerApplication
 from .serializers import (
     DeliveryAddressSerializer,
-    SellerApplicationSerializer,
+    PasswordChangeSerializer,
+    SellerApplicationBriefSerializer,
+    SellerApplicationCreateSerializer,
+    SellerApplicationResultSerializer,
     UserRegisterSerializer,
     UserSerializer,
 )
@@ -38,6 +42,19 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+@extend_schema(request=PasswordChangeSerializer, responses={204: None})
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    serializer = PasswordChangeSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    if not request.user.check_password(serializer.validated_data['current_password']):
+        return Response({'current_password': ['Неверный текущий пароль.']}, status=status.HTTP_400_BAD_REQUEST)
+    request.user.set_password(serializer.validated_data['new_password'])
+    request.user.save(update_fields=['password'])
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema(
@@ -84,20 +101,44 @@ def address_detail(request, pk):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@extend_schema(request=SellerApplicationSerializer, responses={200: UserSerializer})
+@extend_schema(
+    request=SellerApplicationCreateSerializer,
+    responses={201: SellerApplicationResultSerializer},
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def seller_application(request):
-    serializer = SellerApplicationSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
     user = request.user
     if user.is_admin:
-        return Response({'detail': 'Администратору не требуется заявка продавца'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {'detail': 'Администратору не требуется заявка продавца'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if user.role == User.Role.SELLER and user.seller_status == User.SellerStatus.APPROVED:
+        return Response({'detail': 'Вы уже подтверждённый продавец'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if SellerApplication.objects.filter(user=user, status=SellerApplication.Status.SUBMITTED).exists():
+        return Response({'detail': 'Уже есть заявка на рассмотрении'}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = SellerApplicationCreateSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    application = serializer.save(
+        user=user,
+        status=SellerApplication.Status.SUBMITTED,
+    )
+    if application.terms_accepted:
+        application.terms_accepted_at = timezone.now()
+        application.save(update_fields=['terms_accepted_at'])
 
     user.role = User.Role.SELLER
     user.seller_status = User.SellerStatus.PENDING
     user.seller_rejection_reason = ''
-    user.save(update_fields=['role', 'seller_status', 'seller_rejection_reason'])
+    user.phone = application.phone
+    user.save(update_fields=['role', 'seller_status', 'seller_rejection_reason', 'phone'])
 
-    return Response(UserSerializer(user, context={'request': request}).data)
+    payload = {
+        'user': UserSerializer(user, context={'request': request}).data,
+        'application': SellerApplicationBriefSerializer(application).data,
+    }
+    return Response(payload, status=status.HTTP_201_CREATED)

@@ -2,15 +2,28 @@ import { api } from './client'
 
 export { api }
 
+export interface SellerApplicationPayload {
+  seller_type: 'individual' | 'self_employed' | 'ie' | 'llc'
+  display_name: string
+  full_name: string
+  phone: string
+  city: string
+  country: string
+  description: string
+  terms_accepted: boolean
+}
+
 export const authApi = {
   login: (email: string, password: string) =>
     api.post('/auth/login/', { email, password }),
   register: (data: { email: string; username: string; password: string; password_confirm: string; role?: string }) =>
     api.post('/auth/register/', data),
   me: () => api.get('/auth/me/'),
-  updateMe: (data: { first_name?: string; last_name?: string; phone?: string; role?: string }) =>
+  updateMe: (data: { first_name?: string; last_name?: string; phone?: string; role?: string; bio?: string }) =>
     api.patch('/auth/me/', data),
-  sellerApplication: (data?: { message?: string }) => api.post('/auth/seller-application/', data ?? {}),
+  changePassword: (data: { current_password: string; new_password: string; new_password_confirm: string }) =>
+    api.post('/auth/password-change/', data),
+  sellerApplication: (data: SellerApplicationPayload) => api.post('/auth/seller-application/', data),
   getAddresses: () => api.get('/auth/addresses/'),
   addAddress: (data: { city: string; street: string; building: string; apartment?: string; postal_code?: string; is_default?: boolean }) =>
     api.post('/auth/addresses/', data),
