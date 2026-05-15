@@ -8,8 +8,9 @@ from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 
-from .models import Category, Product, ProductImage, WishlistItem
+from .models import Brand, Category, Product, ProductImage, WishlistItem
 from .serializers import (
+    BrandSerializer,
     CategorySerializer,
     ProductModerationSerializer,
     ProductListSerializer,
@@ -18,12 +19,29 @@ from .serializers import (
     WishlistItemSerializer,
 )
 from .permissions import IsAdminRole, IsSellerOrAdmin
+from .constants import get_gender_root_category, get_gender_root_category_ids
 from .services import apply_category_filter, get_active_product
+
+
+class BrandListView(generics.ListAPIView):
+    """Список активных брендов для навигации и форм товара."""
+
+    serializer_class = BrandSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+    def get_queryset(self):
+        return Brand.objects.filter(is_active=True).order_by('order', 'name')
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
     serializer_class = CategorySerializer
     filter_backends = []
+
+    def paginate_queryset(self, queryset):
+        if self.request.query_params.get('for_nav') in ('1', 'true', 'yes'):
+            return None
+        return super().paginate_queryset(queryset)
 
     def get_queryset(self):
         qs = Category.objects.all().order_by('order', 'name')
@@ -34,6 +52,15 @@ class CategoryListCreateView(generics.ListCreateAPIView):
                 return qs.filter(parent_id=parent_id)
             except ValueError:
                 return qs.none()
+        # Навигация в шапке: только разделы активной витрины (shop_gender), без дубля «Для него» + «Для неё»
+        if self.request.query_params.get('for_nav') in ('1', 'true', 'yes'):
+            shop_gender = (self.request.query_params.get('shop_gender') or '').strip().lower()
+            if shop_gender in ('male', 'female'):
+                root = get_gender_root_category(shop_gender)
+                if root:
+                    return qs.filter(parent_id=root.id)
+            gender_root_ids = get_gender_root_category_ids()
+            return qs.filter(parent__isnull=True).exclude(id__in=gender_root_ids)
         return qs.filter(parent=None)
 
     def get_permissions(self):
@@ -91,13 +118,19 @@ class ProductListView(generics.ListAPIView):
         # Фильтр по бренду
         brand = self.request.query_params.get('brand')
         if brand:
-            qs = qs.filter(brand=brand)
+            qs = qs.filter(brand__slug=brand)
         # Витрина «Для него» / «Для неё» (клиент: shop_gender=male|female; унисекс в обеих)
         shop_gender = (self.request.query_params.get('shop_gender') or '').strip().lower()
         if shop_gender == 'male':
             qs = qs.filter(Q(gender=Product.Gender.MALE) | Q(gender=Product.Gender.UNISEX))
         elif shop_gender == 'female':
             qs = qs.filter(Q(gender=Product.Gender.FEMALE) | Q(gender=Product.Gender.UNISEX))
+        seller = self.request.query_params.get('seller')
+        if seller is not None and seller != '':
+            try:
+                qs = qs.filter(seller_id=int(seller))
+            except ValueError:
+                qs = qs.none()
         return qs
 
 
@@ -143,6 +176,22 @@ class ProductUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         if user.is_admin:
             return Product.objects.all()
         return Product.objects.filter(seller=user)
+
+    def destroy(self, request, *args, **kwargs):
+        from django.db.models.deletion import ProtectedError
+
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {
+                    'detail': (
+                        'Нельзя удалить товар: он связан с данными, которые нельзя изменить. '
+                        'Обратитесь в поддержку.'
+                    ),
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
 
 
 class ProductModerationView(generics.UpdateAPIView):

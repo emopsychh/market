@@ -2,6 +2,24 @@ from django.db import models
 from django.conf import settings
 
 
+class Brand(models.Model):
+    """Бренд товара — управляется в админке."""
+
+    name = models.CharField('Название', max_length=100)
+    slug = models.SlugField('Slug', max_length=100, unique=True)
+    logo = models.ImageField('Логотип', upload_to='brands/%Y/%m/', blank=True, null=True)
+    order = models.PositiveIntegerField('Порядок', default=0)
+    is_active = models.BooleanField('Активен', default=True, help_text='Скрытые бренды не показываются в навигации')
+
+    class Meta:
+        verbose_name = 'Бренд'
+        verbose_name_plural = 'Бренды'
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return self.name
+
+
 class Category(models.Model):
     """Product category (e.g. Women, Men, Kids, Accessories)."""
 
@@ -50,16 +68,6 @@ class Product(models.Model):
         FEMALE = 'female', 'Женский'
         UNISEX = 'unisex', 'Унисекс'
 
-    class Brand(models.TextChoices):
-        ADIDAS = 'adidas', 'Adidas'
-        BURBERRY = 'burberry', 'Burberry'
-        CALVIN_KLEIN = 'calvin-klein', 'Calvin Klein'
-        GUCCI = 'gucci', 'Gucci'
-        LOUIS_VUITTON = 'louis-vuitton', 'Louis Vuitton'
-        NEW_BALANCE = 'new-balance', 'New Balance'
-        VOGUE = 'vogue', 'Vogue'
-        ZARA = 'zara', 'Zara'
-
     name = models.CharField('Название', max_length=200)
     description = models.TextField('Описание', blank=True)
     price = models.DecimalField('Цена', max_digits=10, decimal_places=2)
@@ -100,12 +108,13 @@ class Product(models.Model):
         default=Gender.MALE,
         help_text='Для выдачи в категориях «Мужчинам» / «Женщинам» (slug в GENDER_CATEGORY_SLUGS)',
     )
-    brand = models.CharField(
-        'Бренд',
-        max_length=32,
-        choices=Brand.choices,
+    brand = models.ForeignKey(
+        Brand,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
-        default='',
+        related_name='products',
+        verbose_name='Бренд',
     )
     listing_categories = models.ManyToManyField(
         Category,

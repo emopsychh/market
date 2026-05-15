@@ -1,5 +1,11 @@
 from rest_framework import serializers
 from .models import User, DeliveryAddress, SellerApplication
+from .services import (
+    get_seller_rating_avg,
+    get_seller_showcase_count,
+    get_seller_sold_units,
+    get_seller_storefront_name,
+)
 
 
 class DeliveryAddressSerializer(serializers.ModelSerializer):
@@ -100,31 +106,13 @@ class UserSerializer(serializers.ModelSerializer):
         return SellerApplicationBriefSerializer(app).data
 
     def get_seller_rating_avg(self, obj):
-        """Средняя оценка продавца; позже — из модели отзывов."""
-        return None
+        return get_seller_rating_avg(obj)
 
     def get_seller_sold_units(self, obj):
-        from django.db.models import Sum
-        from orders.models import Order, OrderItem
-
-        total = OrderItem.objects.filter(
-            seller=obj,
-            order__status__in=[
-                Order.Status.CONFIRMED,
-                Order.Status.SHIPPED,
-                Order.Status.DELIVERED,
-            ],
-        ).aggregate(s=Sum('quantity'))['s']
-        return int(total or 0)
+        return get_seller_sold_units(obj)
 
     def get_seller_showcase_count(self, obj):
-        from products.models import Product
-
-        return Product.objects.filter(
-            seller=obj,
-            status=Product.Status.ACTIVE,
-            publication_status=Product.PublicationStatus.PUBLISHED,
-        ).count()
+        return get_seller_showcase_count(obj)
 
     def validate_role(self, value):
         """Пользователь может выбрать только buyer или seller. Admin — только через админку."""
@@ -162,3 +150,45 @@ class SellerApplicationCreateSerializer(serializers.ModelSerializer):
 class SellerApplicationResultSerializer(serializers.Serializer):
     user = UserSerializer()
     application = SellerApplicationBriefSerializer()
+
+
+class PublicSellerProfileSerializer(serializers.ModelSerializer):
+    """Публичная карточка продавца для витрины и ссылок с товаров."""
+
+    display_name = serializers.SerializerMethodField()
+    seller_rating_avg = serializers.SerializerMethodField()
+    seller_sold_units = serializers.SerializerMethodField()
+    seller_showcase_count = serializers.SerializerMethodField()
+    is_own_profile = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'display_name',
+            'bio',
+            'date_joined',
+            'seller_rating_avg',
+            'seller_sold_units',
+            'seller_showcase_count',
+            'is_own_profile',
+        ]
+
+    def get_display_name(self, obj):
+        return get_seller_storefront_name(obj)
+
+    def get_seller_rating_avg(self, obj):
+        return get_seller_rating_avg(obj)
+
+    def get_seller_sold_units(self, obj):
+        return get_seller_sold_units(obj)
+
+    def get_seller_showcase_count(self, obj):
+        return get_seller_showcase_count(obj)
+
+    def get_is_own_profile(self, obj):
+        request = self.context.get('request')
+        if not request or not getattr(request, 'user', None) or not request.user.is_authenticated:
+            return False
+        return request.user.pk == obj.pk

@@ -60,6 +60,7 @@ export function ProfileActivityPage() {
   const [myProducts, setMyProducts] = useState<Product[]>([])
   const [loadingMine, setLoadingMine] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [wishlistProducts, setWishlistProducts] = useState<Product[]>([])
@@ -134,10 +135,14 @@ export function ProfileActivityPage() {
   const handleDeleteProduct = async (productId: number) => {
     if (!confirm('Удалить это объявление?')) return
     setDeletingId(productId)
+    setDeleteError(null)
     try {
       await productsApi.remove(productId)
       setMyProducts((prev) => prev.filter((p) => p.id !== productId))
       await refreshUser()
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { detail?: string } } })?.response?.data
+      setDeleteError(data?.detail ?? 'Не удалось удалить объявление')
     } finally {
       setDeletingId(null)
     }
@@ -313,6 +318,7 @@ export function ProfileActivityPage() {
       {tab === 'listings' && (
         <div className={styles.panel}>
           <h2 className={styles.sectionTitle}>Выставленные товары</h2>
+          {deleteError && <p className={styles.errorBox}>{deleteError}</p>}
           {!isApprovedSeller && (
             <p className={styles.placeholder}>
               Витрина доступна подтверждённым продавцам. Подай заявку в настройках аккаунта или дождись модерации.
@@ -384,7 +390,7 @@ export function ProfileActivityPage() {
         <div className={styles.panel}>
           <h2 className={styles.sectionTitle}>Отзывы</h2>
           <p className={styles.placeholder}>
-            Отзывы о тебе как о продавце и твои ответы будут здесь после запуска публичных профилей.
+            Отзывы о тебе как о продавце и твои ответы появятся здесь после запуска системы оценок.
           </p>
         </div>
       )}

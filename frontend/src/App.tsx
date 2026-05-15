@@ -11,6 +11,7 @@ import { ProfileLayout } from './pages/profile/ProfileLayout'
 import { ProfileActivityPage } from './pages/profile/ProfileActivityPage'
 import { AccountSettingsPage } from './pages/profile/AccountSettingsPage'
 import { SellerApplyPage } from './pages/SellerApplyPage'
+import { SellerPublicPage } from './pages/SellerPublicPage'
 import { ProductDetailPage } from './pages/ProductDetailPage'
 import { ProductNewPage } from './pages/ProductNewPage'
 import { ProductEditPage } from './pages/ProductEditPage'
@@ -41,6 +42,7 @@ function App() {
                   <Route path="settings" element={<AccountSettingsPage />} />
                 </Route>
                 <Route path="seller/apply" element={<SellerApplyPage />} />
+                <Route path="seller/:sellerId" element={<SellerPublicPage />} />
               </Route>
               <Route path="*" element={<NotFoundPage />} />
               </Routes>

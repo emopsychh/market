@@ -1,15 +1,15 @@
 import { useEffect, useState, FormEvent, ChangeEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { categoriesApi, productsApi } from '../api'
-import { BRAND_OPTIONS } from '../constants/brands'
+import { productsApi } from '../api'
+import { useBrands } from '../hooks/useBrands'
+import {
+  loadProductCategoryOptions,
+  resolveCategoryId,
+  type ProductCategoryOption,
+} from '../utils/productCategoryOptions'
 import shared from './profile/profileShared.module.css'
 import styles from './ProductNewPage.module.css'
-
-interface CategoryOption {
-  id: number
-  label: string
-}
 
 function parseList(raw: string): string[] {
   return raw
@@ -21,7 +21,7 @@ function parseList(raw: string): string[] {
 export function ProductNewPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
   const navigate = useNavigate()
-  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>([])
+  const [categoryOptions, setCategoryOptions] = useState<ProductCategoryOption[]>([])
   const [categoriesLoading, setCategoriesLoading] = useState(true)
 
   const [name, setName] = useState('')
@@ -31,7 +31,8 @@ export function ProductNewPage() {
   const [categoryId, setCategoryId] = useState('')
   const [sizes, setSizes] = useState('S, M, L')
   const [gender, setGender] = useState<'male' | 'female' | 'unisex'>('male')
-  const [brand, setBrand] = useState(BRAND_OPTIONS[0]?.slug ?? '')
+  const { brands, loading: brandsLoading } = useBrands()
+  const [brand, setBrand] = useState('')
   const [images, setImages] = useState<File[]>([])
 
   const [submitting, setSubmitting] = useState(false)
@@ -52,39 +53,30 @@ export function ProductNewPage() {
   }, [isLoading, isAuthenticated, user, canSell, navigate])
 
   useEffect(() => {
+    if (brands.length && !brand) {
+      setBrand(brands[0].slug)
+    }
+  }, [brands, brand])
+
+  useEffect(() => {
     let cancelled = false
-    ;(async () => {
-      try {
-        const rootsRes = await categoriesApi.list()
-        const roots = rootsRes.data.results ?? rootsRes.data ?? []
-        const options: CategoryOption[] = []
-        for (const r of roots) {
-          const subRes = await categoriesApi.list({ parent: r.id })
-          const children = subRes.data.results ?? subRes.data ?? []
-          if (children.length === 0) {
-            options.push({ id: r.id, label: r.name })
-          } else {
-            for (const c of children) {
-              options.push({ id: c.id, label: `${r.name} — ${c.name}` })
-            }
-          }
-        }
-        if (!cancelled) {
-          setCategoryOptions(options)
-          if (options.length && !categoryId) {
-            setCategoryId(String(options[0].id))
-          }
-        }
-      } catch {
+    setCategoriesLoading(true)
+    void loadProductCategoryOptions(gender)
+      .then((options) => {
+        if (cancelled) return
+        setCategoryOptions(options)
+        setCategoryId((prev) => resolveCategoryId(prev, options))
+      })
+      .catch(() => {
         if (!cancelled) setCategoryOptions([])
-      } finally {
+      })
+      .finally(() => {
         if (!cancelled) setCategoriesLoading(false)
-      }
-    })()
+      })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [gender])
 
   const handleFiles = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -177,7 +169,7 @@ export function ProductNewPage() {
           </p>
           <h1 className={shared.pageTitle}>Новый товар</h1>
           <p className={styles.lead}>
-            После публикации карточка сразу в каталоге. Пол нужен для разделов «Мужчинам» / «Женщинам».
+            Пол — в какой витрине («Для него» / «Для неё») увидят товар. Категория — тип: одежда, обувь и т.д.
           </p>
         </header>
 
@@ -214,6 +206,41 @@ export function ProductNewPage() {
             </div>
           </section>
 
+          <section className={shared.panel} aria-labelledby="product-gender-heading">
+            <h2 id="product-gender-heading" className={shared.sectionTitle}>
+              Витрина
+            </h2>
+            <p className={styles.fieldHint} style={{ marginTop: 0, marginBottom: 12 }}>
+              Куда попадёт товар в каталоге — «Для него» или «Для неё». Список категорий ниже зависит от этого выбора.
+            </p>
+            <div className={styles.genderRow}>
+              <label className={styles.genderOption}>
+                <input type="radio" name="gender" value="male" checked={gender === 'male'} onChange={() => setGender('male')} />
+                <span>Мужской</span>
+              </label>
+              <label className={styles.genderOption}>
+                <input
+                  type="radio"
+                  name="gender"
+                  value="female"
+                  checked={gender === 'female'}
+                  onChange={() => setGender('female')}
+                />
+                <span>Женский</span>
+              </label>
+              <label className={styles.genderOption}>
+                <input
+                  type="radio"
+                  name="gender"
+                  value="unisex"
+                  checked={gender === 'unisex'}
+                  onChange={() => setGender('unisex')}
+                />
+                <span>Унисекс</span>
+              </label>
+            </div>
+          </section>
+
           <section className={shared.panel} aria-labelledby="product-catalog-heading">
             <h2 id="product-catalog-heading" className={shared.sectionTitle}>
               Цена и каталог
@@ -234,7 +261,7 @@ export function ProductNewPage() {
               </div>
               <div className={shared.field}>
                 <label className={shared.label} htmlFor="p-cat">
-                  Категория
+                  Тип товара
                 </label>
                 <select
                   id="p-cat"
@@ -243,6 +270,7 @@ export function ProductNewPage() {
                   onChange={(e) => setCategoryId(e.target.value)}
                   disabled={categoriesLoading || categoryOptions.length === 0}
                   required
+                  aria-describedby="p-cat-hint"
                 >
                   {categoryOptions.length === 0 ? (
                     <option value="">Нет категорий</option>
@@ -254,6 +282,9 @@ export function ProductNewPage() {
                     ))
                   )}
                 </select>
+                <span id="p-cat-hint" className={styles.fieldHint}>
+                  Одежда, обувь и т.д. — не «Для него» / «Для неё»
+                </span>
               </div>
             </div>
             <div className={shared.field}>
@@ -283,9 +314,13 @@ export function ProductNewPage() {
                   className={shared.select}
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
-                  required
+                  disabled={brandsLoading || brands.length === 0}
                 >
-                  {BRAND_OPTIONS.map((item) => (
+                  {brandsLoading && <option value="">Загрузка…</option>}
+                  {!brandsLoading && brands.length === 0 && (
+                    <option value="">Нет брендов в каталоге</option>
+                  )}
+                  {brands.map((item) => (
                     <option key={item.slug} value={item.slug}>
                       {item.name}
                     </option>
@@ -308,38 +343,6 @@ export function ProductNewPage() {
                   через запятую
                 </span>
               </div>
-            </div>
-          </section>
-
-          <section className={shared.panel} aria-labelledby="product-gender-heading">
-            <h2 id="product-gender-heading" className={shared.sectionTitle}>
-              Пол
-            </h2>
-            <div className={styles.genderRow}>
-              <label className={styles.genderOption}>
-                <input type="radio" name="gender" value="male" checked={gender === 'male'} onChange={() => setGender('male')} />
-                <span>Мужской</span>
-              </label>
-              <label className={styles.genderOption}>
-                <input
-                  type="radio"
-                  name="gender"
-                  value="female"
-                  checked={gender === 'female'}
-                  onChange={() => setGender('female')}
-                />
-                <span>Женский</span>
-              </label>
-              <label className={styles.genderOption}>
-                <input
-                  type="radio"
-                  name="gender"
-                  value="unisex"
-                  checked={gender === 'unisex'}
-                  onChange={() => setGender('unisex')}
-                />
-                <span>Унисекс</span>
-              </label>
             </div>
           </section>
 

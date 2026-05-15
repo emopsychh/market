@@ -117,9 +117,12 @@ class OrderItem(models.Model):
     )
     product = models.ForeignKey(
         Product,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='order_items',
-        verbose_name='Товар'
+        verbose_name='Товар',
+        help_text='Может быть пустым после удаления карточки товара; в заказе сохраняются название и цена.',
     )
     product_name = models.CharField('Название', max_length=200)
     product_price = models.DecimalField(

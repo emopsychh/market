@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 
-/** Выбор витрины по полу товара (не URL категории; дальше подключите фильтр к API/страницам). */
+/** Глобальная витрина по полу: вместе с категорией в шапке фильтрует каталог (shop_gender + category). */
 export type ShopGender = 'male' | 'female'
 
 const STORAGE_KEY = 'ngm_shop_gender'

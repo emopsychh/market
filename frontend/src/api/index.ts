@@ -34,8 +34,46 @@ export const authApi = {
   removeAddress: (id: number) => api.delete(`/auth/addresses/${id}/`),
 }
 
+export interface PublicSellerProfile {
+  id: number
+  username: string
+  display_name: string
+  bio: string
+  date_joined: string
+  seller_rating_avg: number | null
+  seller_sold_units: number
+  seller_showcase_count: number
+  is_own_profile: boolean
+}
+
+export const sellersApi = {
+  publicProfile: (id: number) => api.get<PublicSellerProfile>(`/auth/sellers/${id}/`),
+}
+
+export interface Brand {
+  id: number
+  name: string
+  slug: string
+  logo: string | null
+  order: number
+}
+
+export const brandsApi = {
+  list: () => api.get<Brand[] | { results: Brand[] }>('/brands/'),
+}
+
 export const categoriesApi = {
-  list: (params?: { parent?: number }) => api.get('/categories/', { params }),
+  list: (params?: { parent?: number; for_nav?: boolean; shop_gender?: 'male' | 'female' }) => {
+    const { for_nav, shop_gender, parent, ...rest } = params ?? {}
+    return api.get('/categories/', {
+      params: {
+        ...rest,
+        ...(parent != null ? { parent } : {}),
+        ...(for_nav ? { for_nav: 1 } : {}),
+        ...(shop_gender ? { shop_gender } : {}),
+      },
+    })
+  },
   detail: (id: number) => api.get(`/categories/${id}/`),
 }
 
@@ -49,7 +87,7 @@ export interface ProductCreatePayload {
   sizes: string[]
   colors: string[]
   gender: 'male' | 'female' | 'unisex'
-  brand: string
+  brand?: string | null
   status?: string
 }
 
@@ -63,6 +101,7 @@ export type ProductListParams = {
   brand?: string
   /** Согласовано с выбором в шапке: male / female; унисекс попадает в обе витрины */
   shop_gender?: 'male' | 'female'
+  seller?: number
 }
 
 export const productsApi = {

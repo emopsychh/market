@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { productsApi } from '../api'
 import { useShopGender } from '../contexts/ShopGenderContext'
+import { buildProductListParams } from '../utils/productListParams'
 import { ProductCard, type Product } from '../components/ProductCard/ProductCard'
 import { getRecentIds } from '../utils/recentlyViewed'
 import { formatPriceRub } from '../utils/price'
@@ -201,7 +202,7 @@ export function HomePage() {
     setLoading(true)
     setError(null)
     productsApi
-      .list(shopGender ? { shop_gender: shopGender } : undefined)
+      .list(buildProductListParams({ shopGender }))
       .then((res) => {
         if (cancelled) return
         const list = (res.data.results ?? res.data ?? []) as Product[]

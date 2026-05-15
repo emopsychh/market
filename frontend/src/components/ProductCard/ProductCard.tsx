@@ -1,7 +1,6 @@
 import { type KeyboardEvent, type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { formatDiscountPercent, formatPriceRub, parsePriceNum } from '../../utils/price'
-import { BRAND_NAME_BY_SLUG } from '../../constants/brands'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWishlist } from '../../contexts/WishlistContext'
 import styles from './ProductCard.module.css'
@@ -16,11 +15,15 @@ export interface Product {
   sizes: string[]
   colors: string[]
   gender?: 'male' | 'female' | 'unisex'
-  brand?: string
+  brand?: string | null
+  brand_name?: string | null
   first_image: string | null
   preview_images?: string[]
   images_count?: number
   status: string
+  seller?: number
+  seller_display_name?: string
+  seller_username?: string
 }
 
 interface ProductCardProps {
@@ -94,7 +97,14 @@ export function ProductCard({ product }: ProductCardProps) {
     setHoverImageIndex(0)
   }, [])
 
-  const brandLabel = product.brand ? BRAND_NAME_BY_SLUG[product.brand] ?? product.brand : ''
+  const brandLabel = product.brand_name ?? product.brand ?? ''
+  const sellerLabel = product.seller_display_name?.trim() || ''
+
+  const openSellerProfile = (e: MouseEvent<HTMLSpanElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (product.seller) navigate(`/seller/${product.seller}`)
+  }
 
   const current = parsePriceNum(product.price)
   const compare = parsePriceNum(product.compare_at_price ?? null)
@@ -154,6 +164,22 @@ export function ProductCard({ product }: ProductCardProps) {
             </p>
           ) : null}
           <p className={styles.title}>{product.name}</p>
+          {sellerLabel && product.seller ? (
+            <span
+              className={styles.seller}
+              role="link"
+              tabIndex={0}
+              onClick={openSellerProfile}
+              onKeyDown={(e: KeyboardEvent<HTMLSpanElement>) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  openSellerProfile(e as unknown as MouseEvent<HTMLSpanElement>)
+                }
+              }}
+            >
+              {sellerLabel}
+            </span>
+          ) : null}
 
           <div className={styles.priceBlock}>
             {onSale && compare !== null && current !== null ? (

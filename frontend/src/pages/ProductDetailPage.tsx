@@ -24,6 +24,8 @@ interface ProductDetail {
   category: number
   category_name: string
   seller_name: string
+  seller_display_name?: string
+  seller_username?: string
   seller: number
   sizes: string[]
   colors: string[]
@@ -260,8 +262,13 @@ export function ProductDetailPage() {
                 ? 'унисекс'
                 : 'мужской'}
           </p>
-          {product.seller_name && (
-            <p className={styles.seller}>Продавец: {product.seller_name}</p>
+          {product.seller && (product.seller_display_name || product.seller_name) && (
+            <p className={styles.seller}>
+              Продавец:{' '}
+              <Link to={`/seller/${product.seller}`} className={styles.sellerLink}>
+                {product.seller_display_name || product.seller_name}
+              </Link>
+            </p>
           )}
           {user && (user.id === product.seller || user.role === 'admin') && (
             <Link to={`/products/${product.id}/edit`} className={styles.editLink}>

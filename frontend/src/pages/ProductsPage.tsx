@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { productsApi } from '../api'
 import { useShopGender } from '../contexts/ShopGenderContext'
+import { buildProductListParams } from '../utils/productListParams'
 import { ProductCard, type Product } from '../components/ProductCard/ProductCard'
-import { BRAND_NAME_BY_SLUG } from '../constants/brands'
+import { useBrands } from '../hooks/useBrands'
 import styles from './ProductsPage.module.css'
 
 export function ProductsPage() {
@@ -13,6 +14,7 @@ export function ProductsPage() {
   const categoryId = searchParams.get('category') ?? ''
   const categoryName = searchParams.get('category_name') ?? ''
   const brand = searchParams.get('brand') ?? ''
+  const { nameBySlug } = useBrands()
 
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,16 +23,14 @@ export function ProductsPage() {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    const params: { search?: string; category?: number; brand?: string; shop_gender?: 'male' | 'female' } = {}
-    if (search) params.search = search
-    if (categoryId) {
-      const parsedCategory = parseInt(categoryId, 10)
-      if (!Number.isNaN(parsedCategory)) params.category = parsedCategory
-    }
-    if (brand) params.brand = brand
-    if (shopGender) params.shop_gender = shopGender
+    const params = buildProductListParams({
+      shopGender,
+      search,
+      categoryId,
+      brand,
+    })
     productsApi
-      .list(Object.keys(params).length ? params : undefined)
+      .list(params)
       .then((res) => setProducts(res.data.results ?? res.data))
       .catch((err) => setError(err.message || 'Ошибка загрузки'))
       .finally(() => setLoading(false))
@@ -40,7 +40,7 @@ export function ProductsPage() {
     <div className="container">
       <h1 className={styles.title}>
         /products
-        {brand && <span className={styles.query}> — {BRAND_NAME_BY_SLUG[brand] ?? brand}</span>}
+        {brand && <span className={styles.query}> — {nameBySlug[brand] ?? brand}</span>}
         {search && <span className={styles.query}> — «{search}»</span>}
         {categoryId && !search && !brand && (
           <span className={styles.query}>

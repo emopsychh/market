@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
@@ -16,7 +17,9 @@ from .serializers import (
     SellerApplicationResultSerializer,
     UserRegisterSerializer,
     UserSerializer,
+    PublicSellerProfileSerializer,
 )
+from .services import is_public_seller_profile
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -142,3 +145,21 @@ def seller_application(request):
         'application': SellerApplicationBriefSerializer(application).data,
     }
     return Response(payload, status=status.HTTP_201_CREATED)
+
+
+class PublicSellerProfileView(generics.RetrieveAPIView):
+    """Публичная витрина продавца — без email и служебных полей."""
+
+    serializer_class = PublicSellerProfileSerializer
+    permission_classes = [AllowAny]
+    lookup_url_kwarg = 'pk'
+
+    def get_queryset(self):
+        return User.objects.all()
+
+    def get_object(self):
+        user = get_object_or_404(self.get_queryset(), pk=self.kwargs['pk'])
+        if not is_public_seller_profile(user):
+            from rest_framework.exceptions import NotFound
+            raise NotFound('Профиль продавца недоступен')
+        return user

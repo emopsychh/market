@@ -138,6 +138,28 @@
   color: #f2f1e8;
 }
 
+.seller {
+  display: block;
+  margin: 0.2rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: rgba(225, 224, 204, 0.5);
+  cursor: pointer;
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seller:hover {
+  color: rgba(225, 224, 204, 0.85);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 .title {
   margin: 0;
   width: 100%;

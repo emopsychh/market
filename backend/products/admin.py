@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib import admin
-from .models import Category, Product, ProductImage
+from .models import Brand, Category, Product, ProductImage
 
 try:
     from unfold.admin import ModelAdmin as UnfoldModelAdmin
@@ -8,6 +8,15 @@ try:
 except ImportError:  # pragma: no cover - fallback when unfold is not installed
     UnfoldModelAdmin = admin.ModelAdmin
     UnfoldTabularInline = admin.TabularInline
+
+
+@admin.register(Brand)
+class BrandAdmin(UnfoldModelAdmin):
+    list_display = ('name', 'slug', 'order', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'slug')
+    prepopulated_fields = {'slug': ('name',)}
+    ordering = ('order', 'name')
 
 
 @admin.register(Category)
@@ -46,13 +55,14 @@ class ProductAdmin(UnfoldModelAdmin):
         'name',
         'price',
         'category',
+        'brand',
         'gender',
         'seller',
         'status',
         'publication_status',
         'created_at',
     )
-    list_filter = ('status', 'publication_status', 'category', 'gender')
+    list_filter = ('status', 'publication_status', 'category', 'brand', 'gender')
     search_fields = ('name', 'description')
     inlines = [ProductImageInline]
     actions = ('publish_products', 'reject_products')
